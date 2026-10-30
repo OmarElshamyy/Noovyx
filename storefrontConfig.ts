@@ -68,6 +68,13 @@ export interface NavLinkConfig {
   visible: boolean;
 }
 
+export interface CatalogCategoryItemConfig {
+  id: string;
+  label: string;
+  filterValue: string;
+  visible: boolean;
+}
+
 export interface DrawerCategoryConfig {
   id: MenuTab;
   label: string;
@@ -124,10 +131,12 @@ export interface StorefrontConfig {
     maxItems: number;
   };
   catalogSection: {
+    enabled: boolean;
     kicker: string;
     title: string;
     subtitle: string;
     discountMultiplier: number;
+    categories: CatalogCategoryItemConfig[];
   };
   reviews: {
     enabled: boolean;
@@ -314,10 +323,20 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
     maxItems: 4,
   },
   catalogSection: {
+    enabled: true,
     kicker: "Shop by Category",
     title: "Select Category & Audio Loadout",
     subtitle: "Filter our verified in-ear monitors, upgrade cables, DAC dongles, and wireless adapters.",
     discountMultiplier: 1.25,
+    categories: [
+      { id: "all", label: "All", filterValue: "All", visible: true },
+      { id: "iems", label: "IEMs", filterValue: "IEMs", visible: true },
+      { id: "wireless", label: "Wireless", filterValue: "Wireless", visible: true },
+      { id: "cables", label: "Cables", filterValue: "Cables", visible: true },
+      { id: "eartips", label: "Ear tips", filterValue: "Ear tips", visible: true },
+      { id: "cases", label: "Cases", filterValue: "Cases", visible: true },
+      { id: "dacs", label: "DACs", filterValue: "DACs", visible: true },
+    ],
   },
   reviews: {
     enabled: true,
@@ -640,6 +659,16 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
     catalogSection: {
       ...DEFAULT_STOREFRONT_CONFIG.catalogSection,
       ...stripProtoKeys(r.catalogSection as Record<string, unknown>),
+      enabled: r.catalogSection?.enabled !== false,
+      categories:
+        Array.isArray(r.catalogSection?.categories) && r.catalogSection.categories.length > 0
+          ? r.catalogSection.categories.slice(0, 24).map((c, idx) => ({
+              id: String(c?.id || `cat-${idx}`),
+              label: String(c?.label || c?.filterValue || "Category").slice(0, 60),
+              filterValue: String(c?.filterValue || c?.label || "All").slice(0, 60),
+              visible: c?.visible !== false,
+            }))
+          : DEFAULT_STOREFRONT_CONFIG.catalogSection.categories,
     },
     reviews: {
       ...DEFAULT_STOREFRONT_CONFIG.reviews,

@@ -13,6 +13,7 @@ import {
   type TrustItemConfig,
   type BlogArticleConfig,
   type SupportStripItemConfig,
+  type CatalogCategoryItemConfig,
 } from "../../storefrontConfig";
 import type { MenuTab } from "./SiteHeader";
 
@@ -65,6 +66,13 @@ export function AdminHomepageEditor({
   const [newAnnouncementMsg, setNewAnnouncementMsg] = useState("");
   const [newTrustBadge, setNewTrustBadge] = useState("");
   const [heroProductSearch, setHeroProductSearch] = useState("");
+  const [newCatalogCatLabel, setNewCatalogCatLabel] = useState("");
+  const [newCatalogCatFilter, setNewCatalogCatFilter] = useState("IEMs");
+  const [newNavLabel, setNewNavLabel] = useState("");
+  const [newNavTab, setNewNavTab] = useState<MenuTab>("iems");
+  const [newDrawerLabel, setNewDrawerLabel] = useState("");
+  const [newDrawerTab, setNewDrawerTab] = useState<MenuTab>("iems");
+  const [newDrawerImage, setNewDrawerImage] = useState("/products/kz-castor-bass.png");
 
   // Helper to update a top-level section of StorefrontConfig
   function updateSection<K extends keyof StorefrontConfig>(
@@ -429,6 +437,13 @@ export function AdminHomepageEditor({
                   desc: `"${config.newReleases.title}" (Up to ${config.newReleases.maxItems} items)`,
                   enabled: config.newReleases.enabled,
                   onToggle: (v: boolean) => updateSection("newReleases", { enabled: v }),
+                  editTab: "sections" as CmsSubTab,
+                },
+                {
+                  label: "Shop by Category (Main Catalog)",
+                  desc: `"${config.catalogSection.title}" (${(config.catalogSection.categories || DEFAULT_STOREFRONT_CONFIG.catalogSection.categories).filter((c) => c.visible !== false).length} active categories)`,
+                  enabled: config.catalogSection.enabled !== false,
+                  onToggle: (v: boolean) => updateSection("catalogSection", { enabled: v }),
                   editTab: "sections" as CmsSubTab,
                 },
                 {
@@ -1163,27 +1178,39 @@ export function AdminHomepageEditor({
 
           {/* Desktop Navigation Bar Links */}
           <div style={cardStyle}>
-            <h3 style={{ marginTop: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
-              🧭 Desktop Navigation Bar Links
-            </h3>
-            <p className="field-help">Rename or toggle visibility for the top navigation links.</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "10px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
+              <h3 style={{ margin: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
+                🧭 Desktop Navigation Bar Links
+              </h3>
+              <button
+                type="button"
+                className="ghost-button"
+                style={{ fontSize: "0.78rem", padding: "5px 10px" }}
+                onClick={() => updateSection("header", { navLinks: DEFAULT_STOREFRONT_CONFIG.header.navLinks })}
+              >
+                ↺ Reset Default Nav Links
+              </button>
+            </div>
+            <p className="field-help">Add, rename, reorder, hide, or delete top navigation links.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "14px" }}>
               {config.header.navLinks.map((link, idx) => (
                 <div
                   key={link.id + idx}
                   style={{
                     padding: "10px 12px",
-                    background: "rgba(15, 23, 42, 0.7)",
+                    background: link.visible !== false ? "rgba(15, 23, 42, 0.75)" : "rgba(15, 23, 42, 0.35)",
                     borderRadius: "8px",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    border: link.visible !== false ? "1px solid rgba(0, 229, 255, 0.2)" : "1px solid rgba(255, 255, 255, 0.06)",
                     display: "flex",
                     alignItems: "center",
                     gap: "10px",
+                    flexWrap: "wrap",
                   }}
                 >
                   <input
                     type="checkbox"
                     checked={link.visible !== false}
+                    title="Show or hide this link"
                     onChange={(e) => {
                       const next = [...config.header.navLinks];
                       next[idx] = { ...link, visible: e.target.checked };
@@ -1191,41 +1218,142 @@ export function AdminHomepageEditor({
                     }}
                   />
                   <input
-                    style={{ ...inputStyle, padding: "6px 10px" }}
+                    style={{ ...inputStyle, flex: "1 1 180px", padding: "6px 10px" }}
                     value={link.label}
+                    placeholder="Link Label"
                     onChange={(e) => {
                       const next = [...config.header.navLinks];
                       next[idx] = { ...link, label: e.target.value };
                       updateSection("header", { navLinks: next });
                     }}
                   />
+                  <select
+                    style={{ ...inputStyle, width: "auto", padding: "6px 10px" }}
+                    value={link.id}
+                    onChange={(e) => {
+                      const next = [...config.header.navLinks];
+                      next[idx] = { ...link, id: e.target.value as MenuTab };
+                      updateSection("header", { navLinks: next });
+                    }}
+                  >
+                    {MENU_TAB_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        Target: {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    <button
+                      type="button"
+                      className="copy-mini-btn"
+                      disabled={idx === 0}
+                      onClick={() => {
+                        const next = [...config.header.navLinks];
+                        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                        updateSection("header", { navLinks: next });
+                      }}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="copy-mini-btn"
+                      disabled={idx === config.header.navLinks.length - 1}
+                      onClick={() => {
+                        const next = [...config.header.navLinks];
+                        [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                        updateSection("header", { navLinks: next });
+                      }}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="copy-mini-btn"
+                      style={{ color: "#f87171" }}
+                      onClick={() => {
+                        const next = config.header.navLinks.filter((_, i) => i !== idx);
+                        updateSection("header", { navLinks: next });
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
+            </div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <input
+                style={{ ...inputStyle, flex: "1 1 200px" }}
+                placeholder="New nav link label (e.g. Gaming Gear)..."
+                value={newNavLabel}
+                onChange={(e) => setNewNavLabel(e.target.value)}
+              />
+              <select
+                style={{ ...inputStyle, width: "auto" }}
+                value={newNavTab}
+                onChange={(e) => setNewNavTab(e.target.value as MenuTab)}
+              >
+                {MENU_TAB_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    Target: {o.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => {
+                  if (!newNavLabel.trim()) return;
+                  updateSection("header", {
+                    navLinks: [
+                      ...config.header.navLinks,
+                      { id: newNavTab, label: newNavLabel.trim(), visible: true },
+                    ],
+                  });
+                  setNewNavLabel("");
+                }}
+              >
+                + Add Nav Link
+              </button>
             </div>
           </div>
 
           {/* Mobile Drawer Categories */}
           <div style={cardStyle}>
-            <h3 style={{ marginTop: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
-              📱 Mobile Slide-Out Drawer Menu Items
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
+              <h3 style={{ margin: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
+                📱 Mobile Slide-Out Drawer Menu Categories
+              </h3>
+              <button
+                type="button"
+                className="ghost-button"
+                style={{ fontSize: "0.78rem", padding: "5px 10px" }}
+                onClick={() => updateSection("header", { drawerCategories: DEFAULT_STOREFRONT_CONFIG.header.drawerCategories })}
+              >
+                ↺ Reset Default Drawer Categories
+              </button>
+            </div>
+            <p className="field-help">Add, rename, hide/show, reorder, or delete categories in the mobile left sidebar menu.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "14px" }}>
               {config.header.drawerCategories.map((dc, idx) => (
                 <div
                   key={dc.id + idx}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "auto 44px 1fr 1fr auto",
+                    gridTemplateColumns: "auto 44px 1fr 1fr auto auto",
                     gap: "10px",
                     alignItems: "center",
                     padding: "8px 12px",
-                    background: "rgba(15, 23, 42, 0.65)",
+                    background: dc.visible !== false ? "rgba(15, 23, 42, 0.75)" : "rgba(15, 23, 42, 0.35)",
+                    border: dc.visible !== false ? "1px solid rgba(0, 229, 255, 0.2)" : "1px solid rgba(255, 255, 255, 0.06)",
                     borderRadius: "8px",
                   }}
                 >
                   <input
                     type="checkbox"
                     checked={dc.visible !== false}
+                    title="Show or hide this category"
                     onChange={(e) => {
                       const next = [...config.header.drawerCategories];
                       next[idx] = { ...dc, visible: e.target.checked };
@@ -1269,8 +1397,91 @@ export function AdminHomepageEditor({
                       </option>
                     ))}
                   </select>
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    <button
+                      type="button"
+                      className="copy-mini-btn"
+                      disabled={idx === 0}
+                      onClick={() => {
+                        const next = [...config.header.drawerCategories];
+                        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                        updateSection("header", { drawerCategories: next });
+                      }}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="copy-mini-btn"
+                      disabled={idx === config.header.drawerCategories.length - 1}
+                      onClick={() => {
+                        const next = [...config.header.drawerCategories];
+                        [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                        updateSection("header", { drawerCategories: next });
+                      }}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="copy-mini-btn"
+                      style={{ color: "#f87171" }}
+                      onClick={() => {
+                        const next = config.header.drawerCategories.filter((_, i) => i !== idx);
+                        updateSection("header", { drawerCategories: next });
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
+            </div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <input
+                style={{ ...inputStyle, flex: "1 1 180px" }}
+                placeholder="New drawer category label..."
+                value={newDrawerLabel}
+                onChange={(e) => setNewDrawerLabel(e.target.value)}
+              />
+              <input
+                style={{ ...inputStyle, flex: "1 1 180px" }}
+                placeholder="Image URL (/products/...)"
+                value={newDrawerImage}
+                onChange={(e) => setNewDrawerImage(e.target.value)}
+              />
+              <select
+                style={{ ...inputStyle, width: "auto" }}
+                value={newDrawerTab}
+                onChange={(e) => setNewDrawerTab(e.target.value as MenuTab)}
+              >
+                {MENU_TAB_OPTIONS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    Target: {o.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => {
+                  if (!newDrawerLabel.trim()) return;
+                  updateSection("header", {
+                    drawerCategories: [
+                      ...config.header.drawerCategories,
+                      {
+                        id: newDrawerTab,
+                        label: newDrawerLabel.trim(),
+                        image: newDrawerImage.trim() || "/products/kz-castor-bass.png",
+                        visible: true,
+                      },
+                    ],
+                  });
+                  setNewDrawerLabel("");
+                }}
+              >
+                + Add Drawer Category
+              </button>
             </div>
           </div>
         </div>
@@ -1449,11 +1660,22 @@ export function AdminHomepageEditor({
             </label>
           </div>
 
-          {/* Main Catalog Heading */}
+          {/* Main Catalog ("Shop by Category") Section */}
           <div style={cardStyle}>
-            <h3 style={{ marginTop: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
-              🗂️ Main Catalog (&quot;Shop by Category&quot;) Section Heading
-            </h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
+              <h3 style={{ margin: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
+                🗂️ &quot;Shop by Category&quot; (Main Catalog) Section
+              </h3>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "white", fontWeight: 700, margin: 0, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={config.catalogSection.enabled !== false}
+                  onChange={(e) => updateSection("catalogSection", { enabled: e.target.checked })}
+                />
+                <span>Show &quot;Shop by Category&quot; Section</span>
+              </label>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Kicker Label
@@ -1472,7 +1694,7 @@ export function AdminHomepageEditor({
                 />
               </label>
             </div>
-            <label style={{ fontSize: "0.84rem", color: "#cbd5e1", display: "block", marginBottom: "16px" }}>
+            <label style={{ fontSize: "0.84rem", color: "#cbd5e1", display: "block", marginBottom: "20px" }}>
               Catalog Subtitle
               <input
                 style={{ ...inputStyle, marginTop: "4px" }}
@@ -1480,6 +1702,272 @@ export function AdminHomepageEditor({
                 onChange={(e) => updateSection("catalogSection", { subtitle: e.target.value })}
               />
             </label>
+
+            {/* Shop by Category Filter Buttons CRUD Manager */}
+            <div
+              style={{
+                padding: "16px",
+                borderRadius: "10px",
+                background: "rgba(5, 7, 13, 0.7)",
+                border: "1px solid rgba(0, 229, 255, 0.22)",
+                marginBottom: "20px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: "0.96rem", color: "var(--cyan)" }}>
+                    🏷️ Shop by Category Tabs — Add, Rename, Hide, Reorder &amp; Delete
+                  </h4>
+                  <p className="field-help" style={{ margin: "4px 0 0 0" }}>
+                    Control every category filter button shown in the &quot;Shop by Category&quot; bar. You can rename labels, hide or show categories, change which product category/keyword they filter, reorder them, or add custom categories.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="ghost-button"
+                  style={{ fontSize: "0.78rem", padding: "6px 12px" }}
+                  onClick={() =>
+                    updateSection("catalogSection", {
+                      categories: DEFAULT_STOREFRONT_CONFIG.catalogSection.categories,
+                    })
+                  }
+                >
+                  ↺ Reset Default Categories
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px", marginBottom: "14px" }}>
+                {(config.catalogSection.categories || DEFAULT_STOREFRONT_CONFIG.catalogSection.categories).map(
+                  (cat: CatalogCategoryItemConfig, idx: number, arr: CatalogCategoryItemConfig[]) => (
+                    <div
+                      key={cat.id || `${cat.filterValue}-${idx}`}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "auto 1fr 1fr auto auto",
+                        gap: "10px",
+                        alignItems: "center",
+                        padding: "9px 12px",
+                        borderRadius: "8px",
+                        background: cat.visible !== false ? "rgba(15, 23, 42, 0.85)" : "rgba(15, 23, 42, 0.38)",
+                        border:
+                          cat.visible !== false
+                            ? "1px solid rgba(0, 229, 255, 0.25)"
+                            : "1px solid rgba(255, 255, 255, 0.06)",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={cat.visible !== false}
+                        title="Show or hide this category button"
+                        onChange={(e) => {
+                          const next = [...arr];
+                          next[idx] = { ...cat, visible: e.target.checked };
+                          updateSection("catalogSection", { categories: next });
+                        }}
+                      />
+
+                      <div>
+                        <span style={{ fontSize: "0.7rem", color: "#94a3b8", display: "block", marginBottom: "2px" }}>
+                          Display Name (Button Label)
+                        </span>
+                        <input
+                          style={{ ...inputStyle, padding: "6px 10px" }}
+                          value={cat.label}
+                          placeholder="Category Button Name"
+                          onChange={(e) => {
+                            const next = [...arr];
+                            next[idx] = { ...cat, label: e.target.value };
+                            updateSection("catalogSection", { categories: next });
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: "0.7rem", color: "#94a3b8", display: "block", marginBottom: "2px" }}>
+                          Filter Target (Category or Keyword)
+                        </span>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <input
+                            style={{ ...inputStyle, padding: "6px 10px" }}
+                            value={cat.filterValue}
+                            placeholder="All, IEMs, Wireless, or keyword..."
+                            onChange={(e) => {
+                              const next = [...arr];
+                              next[idx] = { ...cat, filterValue: e.target.value };
+                              updateSection("catalogSection", { categories: next });
+                            }}
+                          />
+                          <select
+                            style={{ ...inputStyle, width: "auto", padding: "6px 8px" }}
+                            value={
+                              ["All", ...PRODUCT_CATEGORIES, "Accessories", "Gamers"].includes(cat.filterValue)
+                                ? cat.filterValue
+                                : ""
+                            }
+                            onChange={(e) => {
+                              if (!e.target.value) return;
+                              const next = [...arr];
+                              next[idx] = { ...cat, filterValue: e.target.value };
+                              updateSection("catalogSection", { categories: next });
+                            }}
+                          >
+                            <option value="">Preset...</option>
+                            <option value="All">All Products</option>
+                            {PRODUCT_CATEGORIES.map((pc) => (
+                              <option key={pc} value={pc}>
+                                {pc}
+                              </option>
+                            ))}
+                            <option value="Accessories">Accessories</option>
+                            <option value="Gamers">Gamers</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="copy-mini-btn"
+                        style={{
+                          color: cat.visible !== false ? "#34d399" : "#94a3b8",
+                          padding: "6px 10px",
+                        }}
+                        onClick={() => {
+                          const next = [...arr];
+                          next[idx] = { ...cat, visible: cat.visible === false };
+                          updateSection("catalogSection", { categories: next });
+                        }}
+                      >
+                        {cat.visible !== false ? "Visible" : "Hidden"}
+                      </button>
+
+                      <div style={{ display: "flex", gap: "4px" }}>
+                        <button
+                          type="button"
+                          className="copy-mini-btn"
+                          disabled={idx === 0}
+                          title="Move Left / Up"
+                          onClick={() => {
+                            const next = [...arr];
+                            [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                            updateSection("catalogSection", { categories: next });
+                          }}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="copy-mini-btn"
+                          disabled={idx === arr.length - 1}
+                          title="Move Right / Down"
+                          onClick={() => {
+                            const next = [...arr];
+                            [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                            updateSection("catalogSection", { categories: next });
+                          }}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="copy-mini-btn"
+                          style={{ color: "#f87171", padding: "6px 10px" }}
+                          title="Delete Category"
+                          onClick={() => {
+                            if (arr.length <= 1) {
+                              showToast("error", "Keep at least 1 category tab in Shop by Category.");
+                              return;
+                            }
+                            const next = arr.filter((_, i) => i !== idx);
+                            updateSection("catalogSection", { categories: next });
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+
+              {/* Add New Category Row */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  paddingTop: "10px",
+                  borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+                }}
+              >
+                <input
+                  style={{ ...inputStyle, flex: "1 1 200px" }}
+                  placeholder="New Category Button Name (e.g. Gaming IEMs, Moondrop)..."
+                  value={newCatalogCatLabel}
+                  onChange={(e) => setNewCatalogCatLabel(e.target.value)}
+                />
+                <input
+                  style={{ ...inputStyle, flex: "1 1 180px" }}
+                  placeholder="Filter Target (e.g. IEMs, Wireless, or keyword)..."
+                  value={newCatalogCatFilter}
+                  onChange={(e) => setNewCatalogCatFilter(e.target.value)}
+                />
+                <select
+                  style={{ ...inputStyle, width: "auto" }}
+                  value={
+                    ["All", ...PRODUCT_CATEGORIES, "Accessories", "Gamers"].includes(newCatalogCatFilter)
+                      ? newCatalogCatFilter
+                      : ""
+                  }
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setNewCatalogCatFilter(e.target.value);
+                      if (!newCatalogCatLabel.trim()) {
+                        setNewCatalogCatLabel(e.target.value);
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Pick Target Preset...</option>
+                  <option value="All">All</option>
+                  {PRODUCT_CATEGORIES.map((pc) => (
+                    <option key={pc} value={pc}>
+                      {pc}
+                    </option>
+                  ))}
+                  <option value="Accessories">Accessories</option>
+                  <option value="Gamers">Gamers</option>
+                </select>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => {
+                    const label = newCatalogCatLabel.trim();
+                    const filterValue = (newCatalogCatFilter.trim() || label || "All");
+                    if (!label) {
+                      showToast("error", "Enter a display name for the new category button.");
+                      return;
+                    }
+                    const currentCats =
+                      config.catalogSection.categories || DEFAULT_STOREFRONT_CONFIG.catalogSection.categories;
+                    const nextCats: CatalogCategoryItemConfig[] = [
+                      ...currentCats,
+                      {
+                        id: `cat-${Date.now()}`,
+                        label,
+                        filterValue,
+                        visible: true,
+                      },
+                    ];
+                    updateSection("catalogSection", { categories: nextCats });
+                    setNewCatalogCatLabel("");
+                    showToast("success", `Added category "${label}". Click Save & Publish to apply!`);
+                  }}
+                >
+                  + Add Category
+                </button>
+              </div>
+            </div>
 
             {/* Quick Product Visibility Manager */}
             <h4 style={{ fontSize: "0.9rem", color: "white", marginBottom: "8px" }}>

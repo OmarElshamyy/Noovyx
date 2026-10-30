@@ -108,7 +108,7 @@ function unlockBodyScroll() {
 }
 
 export function Storefront() {
-  const [activeCategory, setActiveCategory] = useState<ProductCategory | "All">("All");
+  const [activeCategory, setActiveCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("featured");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -169,7 +169,15 @@ export function Storefront() {
   const filteredProducts = useMemo(() => {
     let result = catalogProducts.filter((product) => product.isActive !== false);
     if (activeCategory !== "All") {
-      result = result.filter((product) => product.category === activeCategory);
+      const needle = activeCategory.toLowerCase().trim();
+      result = result.filter(
+        (product) =>
+          product.category.toLowerCase() === needle ||
+          product.name.toLowerCase().includes(needle) ||
+          product.description.toLowerCase().includes(needle) ||
+          (needle === "accessories" && ["Ear tips", "Cases", "Cables"].includes(product.category)) ||
+          (needle === "gamers" && ["IEMs", "DACs"].includes(product.category)),
+      );
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -596,76 +604,87 @@ export function Storefront() {
         )}
 
         {/* 7. Full Arsenal Catalog with Filters & Search */}
-        <section className="section catalog" id="catalog">
-          <div className="kz-section-container">
-            <div className="section-heading">
-              <p className="category-label">{cmsConfig.catalogSection.kicker}</p>
-              <h2>{cmsConfig.catalogSection.title}</h2>
-              <p className="section-sub">{cmsConfig.catalogSection.subtitle}</p>
-            </div>
-            <div className="catalog-toolbar">
-              <div className="filters" aria-label="Product filters">
-                {(["All", ...PRODUCT_CATEGORIES] as (ProductCategory | "All")[]).map((category) => (
-                  <button
-                    className={activeCategory === category ? "active" : ""}
-                    key={category}
-                    type="button"
-                    onClick={() => setActiveCategory(category)}
+        {cmsConfig.catalogSection.enabled !== false && (
+          <section className="section catalog" id="catalog">
+            <div className="kz-section-container">
+              <div className="section-heading">
+                <p className="category-label">{cmsConfig.catalogSection.kicker}</p>
+                <h2>{cmsConfig.catalogSection.title}</h2>
+                <p className="section-sub">{cmsConfig.catalogSection.subtitle}</p>
+              </div>
+              <div className="catalog-toolbar">
+                <div className="filters" aria-label="Product filters">
+                  {(cmsConfig.catalogSection.categories?.length
+                    ? cmsConfig.catalogSection.categories
+                    : DEFAULT_STOREFRONT_CONFIG.catalogSection.categories
+                  )
+                    .filter((cat) => cat.visible !== false)
+                    .map((cat, idx) => {
+                      const isActive =
+                        activeCategory.toLowerCase().trim() === cat.filterValue.toLowerCase().trim();
+                      return (
+                        <button
+                          className={isActive ? "active" : ""}
+                          key={cat.id || `${cat.filterValue}-${idx}`}
+                          type="button"
+                          onClick={() => setActiveCategory(cat.filterValue)}
+                        >
+                          {cat.label}
+                        </button>
+                      );
+                    })}
+                </div>
+                <div className="catalog-controls">
+                  <input
+                    type="search"
+                    placeholder="Filter products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="catalog-search-inline"
+                    aria-label="Filter catalog products"
+                  />
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className="catalog-sort-select"
+                    aria-label="Sort products"
                   >
-                    {category}
-                  </button>
+                    <option value="featured">Sort: Featured</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name-asc">Name: A to Z</option>
+                  </select>
+                </div>
+              </div>
+              <div className="kz-products-grid">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onView={handleViewProduct}
+                    isRecentlyAdded={lastAddedProductId === product.id}
+                    onAddToCart={(p) => addToCart(p, 1)}
+                  />
                 ))}
               </div>
-              <div className="catalog-controls">
-                <input
-                  type="search"
-                  placeholder="Filter products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="catalog-search-inline"
-                  aria-label="Filter catalog products"
-                />
-                <select
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                  className="catalog-sort-select"
-                  aria-label="Sort products"
-                >
-                  <option value="featured">Sort: Featured</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="name-asc">Name: A to Z</option>
-                </select>
-              </div>
+              {filteredProducts.length === 0 && (
+                <div className="catalog-empty">
+                  <p>No products match your current filters.</p>
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory("All");
+                      setSearchQuery("");
+                    }}
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="kz-products-grid">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onView={handleViewProduct}
-                  isRecentlyAdded={lastAddedProductId === product.id}
-                  onAddToCart={(p) => addToCart(p, 1)}
-                />
-              ))}
-            </div>
-            {filteredProducts.length === 0 && (
-              <div className="catalog-empty">
-                <p>No products match your current filters.</p>
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={() => {
-                    setActiveCategory("All");
-                    setSearchQuery("");
-                  }}
-                >
-                  Reset Filters
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* 8. Let Customers Speak For Us - Real Verified Reviews */}
         <CustomerReviews reviewsConfig={cmsConfig.reviews} />
