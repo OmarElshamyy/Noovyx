@@ -8614,3 +8614,299 @@ a {
     overflow-x: auto !important;
   }
 }
+
+/* ---------- Mobile Side Navigation Drawer Fix (Full Height & Scrollable) ---------- */
+.kz-header-wrapper {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.kz-header-main {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.kz-drawer-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  background: rgba(2, 5, 12, 0.82) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 2500 !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  overflow: hidden !important;
+}
+
+.kz-drawer-panel {
+  width: min(88vw, 350px) !important;
+  max-width: 350px !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  background: linear-gradient(180deg, #080d18 0%, #050811 100%) !important;
+  border-right: 1px solid rgba(0, 229, 255, 0.24) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-shadow: 20px 0 60px rgba(0, 0, 0, 0.9) !important;
+}
+
+.kz-drawer-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 16px 18px !important;
+  padding-top: max(16px, env(safe-area-inset-top)) !important;
+  background: rgba(10, 15, 28, 0.96) !important;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.14) !important;
+  flex-shrink: 0 !important;
+}
+
+.kz-drawer-subtitle {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+  margin-top: 2px;
+}
+
+.kz-drawer-close {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+  font-size: 1rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+.kz-drawer-content {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  padding: 16px 16px 28px !important;
+  padding-bottom: max(28px, env(safe-area-inset-bottom)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 22px !important;
+}
+
+.kz-drawer-search-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kz-drawer-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #0a1122;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  color: #94a3b8;
+}
+
+.kz-drawer-search-input-wrap input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 15px;
+  outline: none;
+}
+
+.kz-drawer-search-results {
+  max-height: 220px;
+  overflow-y: auto;
+  border-radius: 10px;
+  background: #090f1d;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+.kz-drawer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kz-drawer-group-title {
+  display: block !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  color: var(--cyan) !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  margin: 0 !important;
+}
+
+.kz-drawer-links {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.kz-drawer-cat-btn {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+
+.kz-drawer-cat-btn:hover,
+.kz-drawer-cat-btn.active {
+  background: rgba(0, 229, 255, 0.12) !important;
+  border-color: var(--cyan) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.16) !important;
+}
+
+.kz-drawer-cat-thumb-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #05070d;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.kz-drawer-cat-thumb-wrap .kz-dropdown-thumb {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+.kz-drawer-cat-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kz-drawer-cat-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.kz-drawer-cat-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #7f94b0;
+}
+
+.kz-drawer-arrow {
+  color: var(--cyan);
+  font-weight: 800;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.kz-drawer-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.kz-drawer-quick-grid button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kz-drawer-quick-grid button:hover {
+  border-color: var(--cyan);
+  color: #ffffff;
+}
+
+.kz-drawer-footer {
+  margin-top: auto !important;
+  padding-top: 16px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kz-drawer-cart-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.kz-drawer-cart-badge {
+  background: var(--cyan);
+  color: #05070d;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.kz-drawer-wa {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #4ade80 !important;
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+}
