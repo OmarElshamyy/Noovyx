@@ -89,11 +89,11 @@ export function SiteHeader({
             </span>
           </button>
 
-          <a className="kz-brand" href="#top" aria-label="KZ Audio Store Home">
-            <div className="kz-brand-icon">{headerConfig.brandMark || "KZ"}</div>
+          <a className="kz-brand" href="#top" aria-label="Noovyx Home">
+            <div className="kz-brand-icon">{headerConfig.brandMark || "NX"}</div>
             <div className="kz-brand-text">
-              <span className="kz-brand-title">{headerConfig.brandTitle || "AUDIO STORE"}</span>
-              <span className="kz-brand-sub">{headerConfig.brandSub || "OFFICIAL ARSENAL // EGYPT"}</span>
+              <span className="kz-brand-title">{headerConfig.brandTitle || "NOOVYX"}</span>
+              <span className="kz-brand-sub">{headerConfig.brandSub || "PRO AUDIO // EGYPT"}</span>
             </div>
           </a>
 
@@ -294,8 +294,8 @@ export function SiteHeader({
           <div className="kz-drawer-panel" onClick={(e) => e.stopPropagation()}>
             <div className="kz-drawer-header">
               <div className="kz-brand">
-                <span className="kz-brand-icon">{headerConfig.brandMark || "KZ"}</span>
-                <span className="kz-brand-title">NAVIGATION</span>
+                <span className="kz-brand-icon">{headerConfig.brandMark || "NX"}</span>
+                <span className="kz-brand-title">NOOVYX</span>
               </div>
               <button
                 type="button"

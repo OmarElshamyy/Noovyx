@@ -19,6 +19,7 @@ import { SoundStyleRecommender } from "./components/SoundStyleRecommender";
 import { CustomerReviews } from "./components/CustomerReviews";
 import {
   DEFAULT_STOREFRONT_CONFIG,
+  STORAGE_KEY,
   getCachedStorefrontConfig,
   loadStorefrontConfig,
   type StorefrontConfig,
@@ -208,7 +209,7 @@ export function Storefront() {
     });
 
     const handleStorageUpdate = (e: StorageEvent) => {
-      if (e.key === "kz_storefront_cms_config_v1") {
+      if (e.key === STORAGE_KEY || e.key === "kz_storefront_cms_config_v1") {
         setCmsConfig(getCachedStorefrontConfig());
       }
     };
@@ -1437,9 +1438,9 @@ function CheckoutExperience({
       >
         <header className="checkout-top-header">
           <div className="checkout-header-branding">
-            <span className="brand-mark">KZ</span>
+            <span className="brand-mark">NX</span>
             <div>
-              <p className="checkout-kicker">MANUAL INQUIRY // CASH ON DELIVERY</p>
+              <p className="checkout-kicker">NOOVYX // CASH ON DELIVERY</p>
               <h2>Order Checkout</h2>
             </div>
           </div>

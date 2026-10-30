@@ -182,12 +182,12 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
     ],
   },
   header: {
-    brandMark: "KZ",
-    brandTitle: "AUDIO STORE",
-    brandSub: "OFFICIAL ARSENAL // EGYPT",
+    brandMark: "NX",
+    brandTitle: "NOOVYX",
+    brandSub: "PRO AUDIO // EGYPT",
     searchPlaceholder: "Search audio gear...",
     whatsappNumber: "201000000000",
-    drawerTagline: "Authentic KZ Audio Direct across Egypt. Cash On Delivery.",
+    drawerTagline: "Authentic IEMs & Pro Audio Direct across Egypt. Cash On Delivery.",
     navLinks: [
       { id: "all", label: "All Gear", visible: true },
       { id: "iems", label: "KZ IEMs", visible: true },
@@ -466,15 +466,15 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
     buttonText: "Open cart",
   },
   footer: {
-    brandMark: "KZ",
-    brandName: "Audio Store",
+    brandMark: "NX",
+    brandName: "Noovyx",
     description: "Egypt's premium IEM and portable audio gear store. Authentic products, quality-checked, delivered cash on delivery.",
-    copyrightText: "KZ Audio Store Egypt. All rights reserved.",
-    disclaimerText: "This is an independent store. We sell authentic KZ and multi-brand audio products.",
+    copyrightText: "Noovyx Egypt (noovyx.com). All rights reserved.",
+    disclaimerText: "Noovyx is an independent audio store offering authentic KZ and multi-brand Hi-Fi audio gear.",
   },
 };
 
-const STORAGE_KEY = "kz_storefront_cms_config_v1";
+export const STORAGE_KEY = "noovyx_storefront_cms_config_v2";
 
 const SAFE_RASTER_DATA_URL_RE = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/i;
 
@@ -581,6 +581,23 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
     header: {
       ...DEFAULT_STOREFRONT_CONFIG.header,
       ...stripProtoKeys(r.header as Record<string, unknown>),
+      brandMark:
+        !r.header?.brandMark || r.header.brandMark === "KZ"
+          ? DEFAULT_STOREFRONT_CONFIG.header.brandMark
+          : r.header.brandMark,
+      brandTitle:
+        !r.header?.brandTitle || r.header.brandTitle === "AUDIO STORE"
+          ? DEFAULT_STOREFRONT_CONFIG.header.brandTitle
+          : r.header.brandTitle,
+      brandSub:
+        !r.header?.brandSub || r.header.brandSub === "OFFICIAL ARSENAL // EGYPT"
+          ? DEFAULT_STOREFRONT_CONFIG.header.brandSub
+          : r.header.brandSub,
+      drawerTagline:
+        !r.header?.drawerTagline ||
+        r.header.drawerTagline === "Authentic KZ Audio Direct across Egypt. Cash On Delivery."
+          ? DEFAULT_STOREFRONT_CONFIG.header.drawerTagline
+          : r.header.drawerTagline,
       navLinks:
         Array.isArray(r.header?.navLinks) && r.header.navLinks.length > 0
           ? r.header.navLinks.slice(0, 10)
@@ -663,6 +680,25 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
     footer: {
       ...DEFAULT_STOREFRONT_CONFIG.footer,
       ...stripProtoKeys(r.footer as Record<string, unknown>),
+      brandMark:
+        !r.footer?.brandMark || r.footer.brandMark === "KZ"
+          ? DEFAULT_STOREFRONT_CONFIG.footer.brandMark
+          : r.footer.brandMark,
+      brandName:
+        !r.footer?.brandName || r.footer.brandName === "Audio Store"
+          ? DEFAULT_STOREFRONT_CONFIG.footer.brandName
+          : r.footer.brandName,
+      copyrightText:
+        !r.footer?.copyrightText ||
+        r.footer.copyrightText === "KZ Audio Store Egypt. All rights reserved."
+          ? DEFAULT_STOREFRONT_CONFIG.footer.copyrightText
+          : r.footer.copyrightText,
+      disclaimerText:
+        !r.footer?.disclaimerText ||
+        r.footer.disclaimerText ===
+          "This is an independent store. We sell authentic KZ and multi-brand audio products."
+          ? DEFAULT_STOREFRONT_CONFIG.footer.disclaimerText
+          : r.footer.disclaimerText,
     },
   };
 }

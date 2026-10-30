@@ -1219,8 +1219,8 @@ export default function AdminPage() {
     return (
       <main className="admin-login">
         <section className="admin-login-panel">
-          <p className="category-label">Admin portal</p>
-          <h1>Audio Store Command Center</h1>
+          <p className="category-label">Noovyx Admin</p>
+          <h1>Noovyx Command Center</h1>
           <form className="admin-form" noValidate onSubmit={handleLogin}>
             <label>
               Email
@@ -1289,8 +1289,8 @@ export default function AdminPage() {
       {/* Header */}
       <header className="admin-header">
         <div>
-          <p className="category-label">Admin Portal</p>
-          <h1>Storefront CMS, Product & Order Control Center</h1>
+          <p className="category-label">Noovyx Admin</p>
+          <h1>Noovyx Storefront CMS, Product & Order Control Center</h1>
           <span>{user.email}</span>
           <span className="table-muted">
             Access:{" "}

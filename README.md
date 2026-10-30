@@ -1,6 +1,6 @@
-# KZ Audio Store
+# Noovyx (noovyx.com)
 
-Next.js storefront for selling KZ headphones and portable audio accessories. The first version uses a manual order inquiry flow: customers build a cart, submit contact details, and the inquiry is saved to Firebase Firestore.
+Next.js storefront for Noovyx (https://noovyx.com) — Egypt's pro audio, IEM, and portable Hi-Fi accessories store. The first version uses a manual order inquiry flow: customers build a cart, submit contact details, and the inquiry is saved to Firebase Firestore.
 
 ## Local Setup
 

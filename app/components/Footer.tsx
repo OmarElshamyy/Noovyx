@@ -14,8 +14,8 @@ export function Footer({
       <div className="footer-inner">
         <div className="footer-brand-col">
           <div className="footer-brand">
-            <span className="brand-mark">{footerConfig.brandMark || "KZ"}</span>
-            <span>{footerConfig.brandName || "Audio Store"}</span>
+            <span className="brand-mark">{footerConfig.brandMark || "NX"}</span>
+            <span>{footerConfig.brandName || "Noovyx"}</span>
           </div>
           <p className="footer-brand-desc">{footerConfig.description}</p>
         </div>
