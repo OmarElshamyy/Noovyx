@@ -34,6 +34,7 @@ import type { AdminOrder, OrderStatus, Product, ProductCategory } from "../../ty
 import {
   DEFAULT_STOREFRONT_CONFIG,
   loadStorefrontConfig,
+   sanitizeImageSrc,
   saveStorefrontConfig,
   type StorefrontConfig,
 } from "../../storefrontConfig";
@@ -163,7 +164,13 @@ const CATEGORY_PRESETS: Record<ProductCategory, CategoryPreset> = {
   },
 };
 
-const ADMIN_UIDS = ["OimGSZa7MhdKgNzstUjTsevgA2z1"];
+const ADMIN_UIDS = (process.env.NEXT_PUBLIC_ADMIN_UIDS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const MAX_IMAGE_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_IMAGE_MIMES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 const blankProduct: Product = {
   id: "",
@@ -200,18 +207,59 @@ function stockLabel(product: Product) {
 function normalizeImagePath(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "";
+  if (trimmed.startsWith("http://")) {
+    return "";
+  }
   if (
     trimmed.startsWith("/") ||
-    trimmed.startsWith("http://") ||
     trimmed.startsWith("https://") ||
     trimmed.startsWith("data:")
   ) {
-    return trimmed;
+    return sanitizeImageSrc(trimmed);
   }
-  return `/products/${trimmed}`;
+  return sanitizeImageSrc(`/products/${trimmed}`);
 }
 
-function compressImageFile(file: File): Promise<string> {
+async function hasValidImageMagicBytes(file: File): Promise<boolean> {
+  try {
+    const buffer = await file.slice(0, 12).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    if (bytes.length < 4) return false;
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    const isPng =
+      bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    // JPEG: FF D8 FF
+    const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    // WEBP: "RIFF"...."WEBP"
+    const isWebp =
+      bytes.length >= 12 &&
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46 &&
+      bytes[8] === 0x57 &&
+      bytes[9] === 0x45 &&
+      bytes[10] === 0x42 &&
+      bytes[11] === 0x50;
+
+    return isPng || isJpeg || isWebp;
+  } catch {
+    return false;
+  }
+}
+
+async function compressImageFile(file: File): Promise<string> {
+  if (!ALLOWED_IMAGE_MIMES.has(file.type)) {
+    throw new Error("Only PNG, JPEG, and WEBP raster images are allowed (SVG is blocked).");
+  }
+  if (file.size > MAX_IMAGE_FILE_BYTES) {
+    throw new Error("Image file exceeds the 5 MB maximum size limit.");
+  }
+  const magicValid = await hasValidImageMagicBytes(file);
+  if (!magicValid) {
+    throw new Error("Invalid image file header (magic-byte verification failed).");
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -236,7 +284,7 @@ function compressImageFile(file: File): Promise<string> {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          resolve(e.target?.result as string);
+          reject(new Error("Canvas context unavailable for safe image re-encoding."));
           return;
         }
 
@@ -304,15 +352,24 @@ export default function AdminPage() {
   const [customBannerUrl, setCustomBannerUrl] = useState<string>("");
   const [bannerSearch, setBannerSearch] = useState<string>("");
   const [isPublishingBanner, setIsPublishingBanner] = useState<boolean>(false);
+  const [failedLoginCount, setFailedLoginCount] = useState<number>(0);
+  const [loginLockedUntil, setLoginLockedUntil] = useState<number>(0);
 
-  // Load full Homepage CMS configuration
+  const hasAdminAccess = adminState === "claim" || adminState === "document";
+
+  // Load full Homepage CMS configuration only after admin authorization
   useEffect(() => {
+    if (!user || !hasAdminAccess) return;
     loadStorefrontConfig()
       .then((loaded) => setCmsConfig(loaded))
       .catch(() => {});
-  }, []);
+  }, [hasAdminAccess, user]);
 
   async function handleSaveCmsConfig(nextConfig?: StorefrontConfig) {
+    if (!hasAdminAccess) {
+      showToast("error", "Unauthorized: Admin privileges required.");
+      return;
+    }
     const toSave = nextConfig || cmsConfig;
     setIsSavingCms(true);
     try {
@@ -328,8 +385,9 @@ export default function AdminPage() {
     }
   }
 
-  // Load Top Banner settings and playlist
+  // Load Top Banner settings and playlist only after admin authorization
   useEffect(() => {
+    if (!user || !hasAdminAccess) return;
     if (typeof window !== "undefined") {
       const savedHero = localStorage.getItem("kz_hero_image");
       const savedTitle = localStorage.getItem("kz_hero_title");
@@ -362,7 +420,7 @@ export default function AdminPage() {
         })
         .catch(() => {});
     }
-  }, []);
+  }, [hasAdminAccess, user]);
 
   // Admin banner preview slideshow rotation
   useEffect(() => {
@@ -452,8 +510,6 @@ export default function AdminPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bulkFileRef = useRef<HTMLInputElement>(null);
-
-  const hasAdminAccess = adminState === "claim" || adminState === "document";
 
   const showToast = useCallback((type: "success" | "error", text: string) => {
     setToast({ type, text });
@@ -618,12 +674,29 @@ export default function AdminPage() {
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!auth) return;
+
+    const now = Date.now();
+    if (loginLockedUntil > now) {
+      const waitSec = Math.ceil((loginLockedUntil - now) / 1000);
+      showToast("error", `Too many failed attempts. Please wait ${waitSec}s before trying again.`);
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       setPassword("");
+      setFailedLoginCount(0);
+      setLoginLockedUntil(0);
       showToast("success", "Signed in successfully.");
-    } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "Could not sign in.");
+    } catch {
+      const nextCount = failedLoginCount + 1;
+      setFailedLoginCount(nextCount);
+      if (nextCount >= 5) {
+        setLoginLockedUntil(Date.now() + 60_000);
+        showToast("error", "Too many failed sign-in attempts. Locked for 60 seconds.");
+      } else {
+        showToast("error", "Invalid email or password.");
+      }
     }
   }
 
@@ -916,7 +989,20 @@ export default function AdminPage() {
 
   // --- Bulk Import & Export ---
 
+  function sanitizeCsvCell(value: string): string {
+    const clean = value.replace(/"/g, '""');
+    const trimmed = clean.trimStart();
+    if (/^[=+\-@\t\r]/.test(trimmed)) {
+      return `"'${clean}"`;
+    }
+    return `"${clean}"`;
+  }
+
   function parseBulkContent(text: string) {
+    if (text.length > 500_000) {
+      showToast("error", "Bulk input exceeds maximum size of 500 KB.");
+      return;
+    }
     const trimmed = text.trim();
     if (!trimmed) {
       setBulkParsed([]);
@@ -928,29 +1014,36 @@ export default function AdminPage() {
       try {
         const raw = JSON.parse(trimmed);
         if (Array.isArray(raw)) {
-          const items: Product[] = raw.map((item, idx) => {
-            const name = String(item.name || `Item ${idx + 1}`).trim();
-            const slug = slugify(item.slug || name);
+          const items: Product[] = raw.slice(0, 200).map((item, idx) => {
+            const name = String(item.name || `Item ${idx + 1}`).trim().slice(0, 160);
+            const slug = slugify(item.slug || name).slice(0, 100);
             const category: ProductCategory = PRODUCT_CATEGORIES.includes(item.category)
               ? item.category
               : "IEMs";
-            const price = Math.max(0, Number(item.price) || 0);
-            const stock = Math.max(0, Number(item.stockQuantity) || 15);
-            const img = item.imageUrl || item.imageUrls?.[0] || "";
+            const price = Math.max(0, Math.round(Number(item.price) || 0));
+            const stock = Math.max(0, Math.trunc(Number(item.stockQuantity) || 15));
+            const img = normalizeImagePath(String(item.imageUrl || item.imageUrls?.[0] || ""));
+            const safeUrls = Array.isArray(item.imageUrls)
+              ? item.imageUrls.map((u: unknown) => normalizeImagePath(String(u))).filter(Boolean).slice(0, 8)
+              : img
+                ? [img]
+                : [];
             return {
               id: slug,
               slug,
               name,
               category,
               price,
-              image: (item.image || "KZ").slice(0, 4).toUpperCase(),
+              image: String(item.image || "KZ").slice(0, 4).toUpperCase(),
               imageUrl: img,
-              imageUrls: Array.isArray(item.imageUrls) ? item.imageUrls : img ? [img] : [],
-              description: String(item.description || "").trim(),
-              specs: Array.isArray(item.specs) ? item.specs : [],
+              imageUrls: safeUrls,
+              description: String(item.description || "").trim().slice(0, 2000),
+              specs: Array.isArray(item.specs)
+                ? item.specs.map((s: unknown) => String(s).trim().slice(0, 200)).filter(Boolean).slice(0, 8)
+                : [],
               inStock: stock > 0,
               stockQuantity: stock,
-              lowStockThreshold: Number(item.lowStockThreshold) || 3,
+              lowStockThreshold: Math.max(0, Math.trunc(Number(item.lowStockThreshold) || 3)),
               isActive: item.isActive !== false,
               featured: Boolean(item.featured),
             };
@@ -965,11 +1058,11 @@ export default function AdminPage() {
     }
 
     // Parse as CSV: Name, Category, Price, Stock, ImageUrl, Description, Specs
-    const lines = trimmed.split(/\r?\n/).filter(Boolean);
+    const lines = trimmed.split(/\r?\n/).filter(Boolean).slice(0, 201);
     const parsed: Product[] = [];
 
     // Check if line 0 is a header
-    const startIndex = lines[0].toLowerCase().includes("name") ? 1 : 0;
+    const startIndex = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
 
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -979,18 +1072,20 @@ export default function AdminPage() {
       const matches = line.match(/(".*?"|[^",\t]+)(?=\s*[,\\t]|\s*$)/g) || line.split(",");
       const cleanCols = matches.map((m) => m.replace(/^"(.*)"$/, "$1").trim());
 
-      const name = cleanCols[0] || `Imported Product ${i}`;
+      const name = (cleanCols[0] || `Imported Product ${i}`).slice(0, 160);
       const catInput = cleanCols[1] || "IEMs";
       const category: ProductCategory = PRODUCT_CATEGORIES.includes(catInput as ProductCategory)
         ? (catInput as ProductCategory)
         : "IEMs";
-      const price = Math.max(0, Number(cleanCols[2]) || 500);
-      const stock = Math.max(0, Number(cleanCols[3]) || 15);
-      const imgUrl = cleanCols[4] || "";
-      const desc = cleanCols[5] || `High-performance ${name} audio equipment.`;
-      const rawSpecs = cleanCols[6] ? cleanCols[6].split(";").map((s) => s.trim()) : [];
+      const price = Math.max(0, Math.round(Number(cleanCols[2]) || 500));
+      const stock = Math.max(0, Math.trunc(Number(cleanCols[3]) || 15));
+      const imgUrl = normalizeImagePath(cleanCols[4] || "");
+      const desc = (cleanCols[5] || `High-performance ${name} audio equipment.`).slice(0, 2000);
+      const rawSpecs = cleanCols[6]
+        ? cleanCols[6].split(";").map((s) => s.trim().slice(0, 200)).filter(Boolean).slice(0, 8)
+        : [];
 
-      const slug = slugify(name);
+      const slug = slugify(name).slice(0, 100);
       parsed.push({
         id: slug,
         slug,
@@ -1021,6 +1116,10 @@ export default function AdminPage() {
   function handleBulkFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("error", "Bulk import file exceeds the 2 MB maximum size limit.");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -1077,10 +1176,10 @@ export default function AdminPage() {
   function exportCatalogCsv() {
     const header = "Name,Category,Price,Stock,ImageUrl,Description,Specs";
     const rows = products.map((p) => {
-      const cleanName = `"${p.name.replace(/"/g, '""')}"`;
-      const cleanDesc = `"${p.description.replace(/"/g, '""')}"`;
-      const cleanSpecs = `"${p.specs.join("; ").replace(/"/g, '""')}"`;
-      const cleanImg = `"${(p.imageUrl || "").replace(/"/g, '""')}"`;
+      const cleanName = sanitizeCsvCell(p.name);
+      const cleanDesc = sanitizeCsvCell(p.description);
+      const cleanSpecs = sanitizeCsvCell(p.specs.join("; "));
+      const cleanImg = sanitizeCsvCell(p.imageUrl || "");
       return [cleanName, p.category, p.price, p.stockQuantity, cleanImg, cleanDesc, cleanSpecs].join(
         ",",
       );
@@ -1152,6 +1251,31 @@ export default function AdminPage() {
     );
   }
 
+  if (adminState === "checking") {
+    return <main className="admin-shell">Verifying administrator privileges...</main>;
+  }
+
+  if (!hasAdminAccess) {
+    return (
+      <main className="admin-login">
+        <section className="admin-login-panel">
+          <p className="category-label">403 // Access Denied</p>
+          <h1>Insufficient Privileges</h1>
+          <p className="table-muted" style={{ marginBottom: "16px" }}>
+            Signed in as <strong>{user.email}</strong>, but this account does not have administrator privileges.
+          </p>
+          <button
+            className="primary-button wide"
+            type="button"
+            onClick={() => auth && signOut(auth)}
+          >
+            Sign Out
+          </button>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="admin-shell">
       {/* Toast Notification */}
@@ -1172,16 +1296,14 @@ export default function AdminPage() {
             Access:{" "}
             {adminState === "claim"
               ? "Verified Admin (Custom Claim)"
-              : adminState === "document"
-                ? "Verified Admin (Database Document)"
-                : "Checking..."}
+              : "Verified Admin (Database Document)"}
           </span>
         </div>
         <div className="admin-header-actions">
           <a
             href="/"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="ghost-button"
             style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
           >

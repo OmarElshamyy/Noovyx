@@ -476,102 +476,193 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
 
 const STORAGE_KEY = "kz_storefront_cms_config_v1";
 
+const SAFE_RASTER_DATA_URL_RE = /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/i;
+
+/**
+ * Sanitizes navigation/CTA targets to block javascript:, data:, vbscript:, http://, and // open redirects.
+ */
+export function sanitizeUrl(value: unknown, fallback = "#catalog"): string {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.replace(/[\u0000-\u001F\u007F]/g, "").trim();
+  if (!trimmed) return fallback;
+
+  if (trimmed.startsWith("#")) {
+    return /^#[a-zA-Z0-9_-]*$/.test(trimmed) ? trimmed : fallback;
+  }
+
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.includes("..")) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("https://")) {
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol === "https:") return parsed.toString();
+    } catch {
+      return fallback;
+    }
+  }
+
+  return fallback;
+}
+
+/**
+ * Sanitizes image sources to allow only safe relative paths, https:// URLs, or raster base64 data URLs.
+ * Explicitly blocks javascript:, data:image/svg+xml, data:text/html, and insecure http:// mixed content.
+ */
+export function sanitizeImageSrc(value: unknown, fallback = ""): string {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.replace(/[\u0000-\u001F\u007F]/g, "").trim();
+  if (!trimmed) return fallback;
+
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.includes("..")) {
+    return trimmed.replace(/["'()\\]/g, "");
+  }
+
+  if (trimmed.startsWith("https://")) {
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol === "https:") return parsed.toString();
+    } catch {
+      return fallback;
+    }
+  }
+
+  if (SAFE_RASTER_DATA_URL_RE.test(trimmed) && trimmed.length <= 750000) {
+    return trimmed;
+  }
+
+  return fallback;
+}
+
+function stripProtoKeys<T extends Record<string, unknown>>(obj: T | null | undefined): Partial<T> {
+  if (!obj || typeof obj !== "object") return {};
+  const result: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (k === "__proto__" || k === "constructor" || k === "prototype") continue;
+    result[k] = v;
+  }
+  return result as Partial<T>;
+}
+
 export function mergeStorefrontConfig(raw: Record<string, unknown> | null | undefined): StorefrontConfig {
   if (!raw || typeof raw !== "object") return DEFAULT_STOREFRONT_CONFIG;
-  const r = raw as Partial<StorefrontConfig>;
+  const r = stripProtoKeys(raw) as Partial<StorefrontConfig>;
+
+  const rawDrawerCategories =
+    Array.isArray(r.header?.drawerCategories) && r.header.drawerCategories.length > 0
+      ? r.header.drawerCategories.slice(0, 12)
+      : DEFAULT_STOREFRONT_CONFIG.header.drawerCategories;
+
+  const rawSlides =
+    Array.isArray(r.hero?.slides) && r.hero.slides.length > 0
+      ? r.hero.slides.slice(0, 10)
+      : DEFAULT_STOREFRONT_CONFIG.hero.slides;
+
+  const rawStyles =
+    Array.isArray(r.soundFinder?.styles) && r.soundFinder.styles.length > 0
+      ? r.soundFinder.styles.slice(0, 8)
+      : DEFAULT_STOREFRONT_CONFIG.soundFinder.styles;
+
+  const rawArticles =
+    Array.isArray(r.blog?.articles) && r.blog.articles.length > 0
+      ? r.blog.articles.slice(0, 12)
+      : DEFAULT_STOREFRONT_CONFIG.blog.articles;
 
   return {
     announcement: {
       ...DEFAULT_STOREFRONT_CONFIG.announcement,
-      ...(r.announcement || {}),
+      ...stripProtoKeys(r.announcement as Record<string, unknown>),
       messages:
         Array.isArray(r.announcement?.messages) && r.announcement.messages.length > 0
-          ? r.announcement.messages
+          ? r.announcement.messages.slice(0, 10).map((m) => String(m).slice(0, 200))
           : DEFAULT_STOREFRONT_CONFIG.announcement.messages,
     },
     header: {
       ...DEFAULT_STOREFRONT_CONFIG.header,
-      ...(r.header || {}),
+      ...stripProtoKeys(r.header as Record<string, unknown>),
       navLinks:
         Array.isArray(r.header?.navLinks) && r.header.navLinks.length > 0
-          ? r.header.navLinks
+          ? r.header.navLinks.slice(0, 10)
           : DEFAULT_STOREFRONT_CONFIG.header.navLinks,
-      drawerCategories:
-        Array.isArray(r.header?.drawerCategories) && r.header.drawerCategories.length > 0
-          ? r.header.drawerCategories
-          : DEFAULT_STOREFRONT_CONFIG.header.drawerCategories,
+      drawerCategories: rawDrawerCategories.map((cat) => ({
+        ...cat,
+        image: sanitizeImageSrc(cat.image, "/products/kz-castor-bass.png"),
+      })),
     },
     hero: {
       ...DEFAULT_STOREFRONT_CONFIG.hero,
-      ...(r.hero || {}),
+      ...stripProtoKeys(r.hero as Record<string, unknown>),
       trustBadges:
         Array.isArray(r.hero?.trustBadges) && r.hero.trustBadges.length > 0
-          ? r.hero.trustBadges
+          ? r.hero.trustBadges.slice(0, 8).map((b) => String(b).slice(0, 120))
           : DEFAULT_STOREFRONT_CONFIG.hero.trustBadges,
-      slides:
-        Array.isArray(r.hero?.slides) && r.hero.slides.length > 0
-          ? r.hero.slides
-          : DEFAULT_STOREFRONT_CONFIG.hero.slides,
+      slides: rawSlides.map((slide) => ({
+        ...slide,
+        image: sanitizeImageSrc(slide.image, "/products/kz-castor-bass.png"),
+        primaryCtaTarget: sanitizeUrl(slide.primaryCtaTarget, "#catalog"),
+        secondaryCtaTarget: sanitizeUrl(slide.secondaryCtaTarget, "#catalog"),
+      })),
     },
     bestSellers: {
       ...DEFAULT_STOREFRONT_CONFIG.bestSellers,
-      ...(r.bestSellers || {}),
+      ...stripProtoKeys(r.bestSellers as Record<string, unknown>),
     },
     soundFinder: {
       ...DEFAULT_STOREFRONT_CONFIG.soundFinder,
-      ...(r.soundFinder || {}),
-      styles:
-        Array.isArray(r.soundFinder?.styles) && r.soundFinder.styles.length > 0
-          ? r.soundFinder.styles
-          : DEFAULT_STOREFRONT_CONFIG.soundFinder.styles,
+      ...stripProtoKeys(r.soundFinder as Record<string, unknown>),
+      styles: rawStyles.map((st) => ({
+        ...st,
+        image: sanitizeImageSrc(st.image, "/styles/gamers.jpg"),
+      })),
     },
     newReleases: {
       ...DEFAULT_STOREFRONT_CONFIG.newReleases,
-      ...(r.newReleases || {}),
+      ...stripProtoKeys(r.newReleases as Record<string, unknown>),
     },
     catalogSection: {
       ...DEFAULT_STOREFRONT_CONFIG.catalogSection,
-      ...(r.catalogSection || {}),
+      ...stripProtoKeys(r.catalogSection as Record<string, unknown>),
     },
     reviews: {
       ...DEFAULT_STOREFRONT_CONFIG.reviews,
-      ...(r.reviews || {}),
+      ...stripProtoKeys(r.reviews as Record<string, unknown>),
       items:
         Array.isArray(r.reviews?.items) && r.reviews.items.length > 0
-          ? r.reviews.items
+          ? r.reviews.items.slice(0, 20)
           : DEFAULT_STOREFRONT_CONFIG.reviews.items,
     },
     trust: {
       ...DEFAULT_STOREFRONT_CONFIG.trust,
-      ...(r.trust || {}),
+      ...stripProtoKeys(r.trust as Record<string, unknown>),
       items:
         Array.isArray(r.trust?.items) && r.trust.items.length > 0
-          ? r.trust.items
+          ? r.trust.items.slice(0, 10)
           : DEFAULT_STOREFRONT_CONFIG.trust.items,
     },
     blog: {
       ...DEFAULT_STOREFRONT_CONFIG.blog,
-      ...(r.blog || {}),
-      articles:
-        Array.isArray(r.blog?.articles) && r.blog.articles.length > 0
-          ? r.blog.articles
-          : DEFAULT_STOREFRONT_CONFIG.blog.articles,
+      ...stripProtoKeys(r.blog as Record<string, unknown>),
+      articles: rawArticles.map((art) => ({
+        ...art,
+        image: sanitizeImageSrc(art.image, "/blog/blog-guitarists.png"),
+      })),
     },
     supportStrip: {
       ...DEFAULT_STOREFRONT_CONFIG.supportStrip,
-      ...(r.supportStrip || {}),
+      ...stripProtoKeys(r.supportStrip as Record<string, unknown>),
       items:
         Array.isArray(r.supportStrip?.items) && r.supportStrip.items.length > 0
-          ? r.supportStrip.items
+          ? r.supportStrip.items.slice(0, 8)
           : DEFAULT_STOREFRONT_CONFIG.supportStrip.items,
     },
     finalCta: {
       ...DEFAULT_STOREFRONT_CONFIG.finalCta,
-      ...(r.finalCta || {}),
+      ...stripProtoKeys(r.finalCta as Record<string, unknown>),
     },
     footer: {
       ...DEFAULT_STOREFRONT_CONFIG.footer,
-      ...(r.footer || {}),
+      ...stripProtoKeys(r.footer as Record<string, unknown>),
     },
   };
 }
@@ -610,9 +701,10 @@ export async function loadStorefrontConfig(): Promise<StorefrontConfig> {
 }
 
 export async function saveStorefrontConfig(config: StorefrontConfig): Promise<void> {
+  const sanitized = mergeStorefrontConfig(config as unknown as Record<string, unknown>);
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
     } catch {}
   }
 
@@ -620,13 +712,13 @@ export async function saveStorefrontConfig(config: StorefrontConfig): Promise<vo
     await setDoc(
       doc(db, "settings", "storefront"),
       {
-        cmsConfig: config,
-        heroImages: config.hero.slides.map((s) => s.image),
-        heroTitles: config.hero.slides.map((s) => s.title),
-        heroImage: config.hero.slides[0]?.image || "/products/kz-castor-bass.png",
-        heroProductName: config.hero.slides[0]?.title || "KZ Flagship Audio",
-        shuffle: config.hero.autoPlay,
-        intervalSeconds: config.hero.intervalSeconds,
+        cmsConfig: sanitized,
+        heroImages: sanitized.hero.slides.map((s) => s.image),
+        heroTitles: sanitized.hero.slides.map((s) => s.title),
+        heroImage: sanitized.hero.slides[0]?.image || "/products/kz-castor-bass.png",
+        heroProductName: sanitized.hero.slides[0]?.title || "KZ Flagship Audio",
+        shuffle: sanitized.hero.autoPlay,
+        intervalSeconds: sanitized.hero.intervalSeconds,
         updatedAt: new Date().toISOString(),
       },
       { merge: true },

@@ -3,12 +3,15 @@ import {
   doc,
   getDocs,
   collection,
+  limit,
+  query,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { AdminOrder, OrderStatus } from "./types";
 
 const ORDER_COLLECTION = "orders";
+const MAX_ORDER_QUERY_LIMIT = 200;
 
 const ORDER_STATUSES: OrderStatus[] = ["new", "confirmed", "fulfilled", "cancelled"];
 
@@ -68,7 +71,9 @@ export async function getAdminOrders(): Promise<AdminOrder[]> {
     throw new Error("Firebase is not configured.");
   }
 
-  const snapshot = await getDocs(collection(db, ORDER_COLLECTION));
+  const snapshot = await getDocs(
+    query(collection(db, ORDER_COLLECTION), limit(MAX_ORDER_QUERY_LIMIT)),
+  );
 
   return snapshot.docs
     .map((orderDoc) => orderFromData(orderDoc.id, orderDoc.data()))
@@ -85,6 +90,9 @@ export async function updateOrderStatus(
 ): Promise<void> {
   if (!db) {
     throw new Error("Firebase is not configured.");
+  }
+  if (!ORDER_STATUSES.includes(status)) {
+    throw new Error("Invalid order status.");
   }
 
   await updateDoc(doc(db, ORDER_COLLECTION, orderId), { status });

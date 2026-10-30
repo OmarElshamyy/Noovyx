@@ -4,18 +4,22 @@ const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value: [
-      "default-src 'self' https: http: 'unsafe-inline' 'unsafe-eval'",
+      "default-src 'self'",
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
       "object-src 'none'",
-      "img-src 'self' data: blob: https: http:",
+      `img-src 'self' data: blob: https:${isDev ? " http:" : ""}`,
       "font-src 'self' data: https:",
-      "style-src 'self' 'unsafe-inline' https: http:",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:",
-      "connect-src 'self' https: http: wss: ws:",
+      "style-src 'self' 'unsafe-inline'",
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://va.vercel-scripts.com https://apis.google.com`,
+      `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com https://va.vercel-scripts.com https://vitals.vercel-insights.com${isDev ? " http: ws:" : ""}`,
       ...(isDev ? [] : ["upgrade-insecure-requests"]),
     ].join("; "),
+  },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
   },
   {
     key: "Referrer-Policy",
@@ -30,20 +34,33 @@ const securityHeaders = [
     value: "DENY",
   },
   {
+    key: "Cross-Origin-Opener-Policy",
+    value: "same-origin",
+  },
+  {
+    key: "Cross-Origin-Resource-Policy",
+    value: "same-origin",
+  },
+  {
+    key: "X-DNS-Prefetch-Control",
+    value: "off",
+  },
+  {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=()",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
   },
 ];
 
+const extraDevOrigins = (process.env.ALLOWED_DEV_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: [
-    "sulphate-lend-demanding.ngrok-free.dev",
-    "localhost:3000",
-    "127.0.0.1:3000",
-    "192.168.1.107:3000",
-    "192.168.1.107",
-  ],
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
+  allowedDevOrigins: ["localhost:3000", "127.0.0.1:3000", ...extraDevOrigins],
   async headers() {
     return [
       {

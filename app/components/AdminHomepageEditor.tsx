@@ -5,6 +5,7 @@ import type { Product, ProductCategory } from "../../types";
 import { PRODUCT_CATEGORIES, formatCurrency } from "../../products";
 import {
   DEFAULT_STOREFRONT_CONFIG,
+  mergeStorefrontConfig,
   type StorefrontConfig,
   type HeroSlideConfig,
   type SoundStyleConfig,
@@ -206,11 +207,15 @@ export function AdminHomepageEditor({
   function handleImportCmsJson(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 1024 * 1024) {
+      showToast("error", "Configuration JSON file exceeds the 1 MB maximum size limit.");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const parsed = JSON.parse(String(ev.target?.result || "{}"));
-        onChange({ ...DEFAULT_STOREFRONT_CONFIG, ...parsed });
+        const parsed = JSON.parse(String(ev.target?.result || "{}")) as Record<string, unknown>;
+        onChange(mergeStorefrontConfig(parsed));
         showToast("success", "Imported Homepage configuration! Click Save & Publish to apply.");
       } catch {
         showToast("error", "Invalid JSON configuration file.");

@@ -3,6 +3,7 @@ import {
   doc,
   getDocs,
   collection,
+  limit,
   query,
   serverTimestamp,
   setDoc,
@@ -10,9 +11,11 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { products as seedProducts } from "./products";
+import { sanitizeImageSrc } from "./storefrontConfig";
 import type { Product, ProductCategory } from "./types";
 
 const PRODUCT_COLLECTION = "products";
+const MAX_PRODUCT_QUERY_LIMIT = 200;
 
 const allowedCategories: ProductCategory[] = [
   "IEMs",
@@ -34,25 +37,25 @@ function cleanNumber(value: unknown, fallback = 0) {
 export function productFromData(id: string, data: Record<string, unknown>): Product {
   const category = cleanText(data.category);
   const stockQuantity = Math.max(0, Math.trunc(cleanNumber(data.stockQuantity)));
-  const imageUrl = cleanText(data.imageUrl);
+  const imageUrl = sanitizeImageSrc(cleanText(data.imageUrl));
   const imageUrls = Array.isArray(data.imageUrls)
-    ? data.imageUrls.map((url) => cleanText(url)).filter(Boolean).slice(0, 8)
+    ? data.imageUrls.map((url) => sanitizeImageSrc(cleanText(url))).filter(Boolean).slice(0, 8)
     : [];
 
   return {
     id,
-    slug: cleanText(data.slug, id),
-    name: cleanText(data.name, "Untitled product"),
+    slug: cleanText(data.slug, id).slice(0, 100),
+    name: cleanText(data.name, "Untitled product").slice(0, 160),
     category: allowedCategories.includes(category as ProductCategory)
       ? (category as ProductCategory)
       : "IEMs",
-    price: Math.max(0, cleanNumber(data.price)),
+    price: Math.max(0, Math.round(cleanNumber(data.price))),
     image: cleanText(data.image, "KZ").slice(0, 4).toUpperCase(),
     imageUrl,
     imageUrls: imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : [],
-    description: cleanText(data.description),
+    description: cleanText(data.description).slice(0, 2000),
     specs: Array.isArray(data.specs)
-      ? data.specs.map((spec) => cleanText(spec)).filter(Boolean).slice(0, 8)
+      ? data.specs.map((spec) => cleanText(spec).slice(0, 200)).filter(Boolean).slice(0, 8)
       : [],
     inStock: stockQuantity > 0,
     stockQuantity,
@@ -64,17 +67,22 @@ export function productFromData(id: string, data: Record<string, unknown>): Prod
 
 function productToFirestore(product: Product) {
   const stockQuantity = Math.max(0, Math.trunc(product.stockQuantity));
+  const safeImageUrl = sanitizeImageSrc(product.imageUrl.trim());
+  const safeImageUrls = product.imageUrls
+    .map((url) => sanitizeImageSrc(url.trim()))
+    .filter(Boolean)
+    .slice(0, 8);
 
   return {
-    slug: product.slug.trim(),
-    name: product.name.trim(),
+    slug: product.slug.trim().slice(0, 100),
+    name: product.name.trim().slice(0, 160),
     category: product.category,
-    price: Math.max(0, Number(product.price)),
+    price: Math.max(0, Math.round(Number(product.price))),
     image: product.image.trim().slice(0, 4).toUpperCase(),
-    imageUrl: product.imageUrl.trim(),
-    imageUrls: product.imageUrls.map((url) => url.trim()).filter(Boolean).slice(0, 8),
-    description: product.description.trim(),
-    specs: product.specs.map((spec) => spec.trim()).filter(Boolean).slice(0, 8),
+    imageUrl: safeImageUrl,
+    imageUrls: safeImageUrls,
+    description: product.description.trim().slice(0, 2000),
+    specs: product.specs.map((spec) => spec.trim().slice(0, 200)).filter(Boolean).slice(0, 8),
     inStock: stockQuantity > 0,
     stockQuantity,
     lowStockThreshold: Math.max(0, Math.trunc(product.lowStockThreshold)),
@@ -90,7 +98,11 @@ export async function getPublicProducts(): Promise<Product[]> {
   }
 
   const snapshot = await getDocs(
-    query(collection(db, PRODUCT_COLLECTION), where("isActive", "==", true)),
+    query(
+      collection(db, PRODUCT_COLLECTION),
+      where("isActive", "==", true),
+      limit(MAX_PRODUCT_QUERY_LIMIT),
+    ),
   );
   const liveProducts = snapshot.docs
     .map((productDoc) => productFromData(productDoc.id, productDoc.data()))
@@ -104,7 +116,9 @@ export async function getAdminProducts(): Promise<Product[]> {
     throw new Error("Firebase is not configured.");
   }
 
-  const snapshot = await getDocs(collection(db, PRODUCT_COLLECTION));
+  const snapshot = await getDocs(
+    query(collection(db, PRODUCT_COLLECTION), limit(MAX_PRODUCT_QUERY_LIMIT)),
+  );
   return snapshot.docs.map((productDoc) =>
     productFromData(productDoc.id, productDoc.data()),
   );

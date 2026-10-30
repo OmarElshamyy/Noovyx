@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { DEFAULT_STOREFRONT_CONFIG, type StorefrontConfig } from "../../storefrontConfig";
+import {
+  DEFAULT_STOREFRONT_CONFIG,
+  sanitizeImageSrc,
+  sanitizeUrl,
+  type StorefrontConfig,
+} from "../../storefrontConfig";
 
 export function HeroSlideshow({
   onSelectCategory,
@@ -67,7 +72,7 @@ export function HeroSlideshow({
           <div className="kz-hero-actions">
             {slide.primaryCtaText && (
               <a
-                href={slide.primaryCtaTarget || "#catalog"}
+                href={sanitizeUrl(slide.primaryCtaTarget, "#catalog")}
                 className="kz-btn-primary"
                 onClick={() => {
                   if (slide.targetCategory) {
@@ -86,7 +91,7 @@ export function HeroSlideshow({
 
             {slide.secondaryCtaText && (
               <a
-                href={slide.secondaryCtaTarget || "#catalog"}
+                href={sanitizeUrl(slide.secondaryCtaTarget, "#catalog")}
                 className="kz-btn-secondary"
               >
                 {slide.secondaryCtaText}
@@ -113,7 +118,7 @@ export function HeroSlideshow({
             {slides.map((s, idx) => (
               <img
                 key={s.id + idx}
-                src={s.image}
+                src={sanitizeImageSrc(s.image, "/products/kz-castor-bass.png")}
                 alt={s.title}
                 className={`kz-hero-slide-img ${idx === safeIdx ? "active" : ""}`}
                 loading={idx === 0 ? "eager" : "lazy"}

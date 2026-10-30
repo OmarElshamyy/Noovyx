@@ -3,7 +3,11 @@
 import React, { useState } from "react";
 import type { Product } from "../../types";
 import { formatCurrency } from "../../products";
-import { DEFAULT_STOREFRONT_CONFIG, type StorefrontConfig } from "../../storefrontConfig";
+import {
+  DEFAULT_STOREFRONT_CONFIG,
+  sanitizeImageSrc,
+  type StorefrontConfig,
+} from "../../storefrontConfig";
 
 export function SoundStyleRecommender({
   products,
@@ -78,7 +82,9 @@ export function SoundStyleRecommender({
               >
                 <div
                   className="kz-style-card-bg"
-                  style={{ backgroundImage: `url(${style.image})` }}
+                  style={{
+                    backgroundImage: `url("${sanitizeImageSrc(style.image, "/styles/gamers.jpg")}")`,
+                  }}
                 />
                 <div className="kz-style-card-overlay">
                   <span className="kz-style-card-tag">
