@@ -3,7 +3,7 @@
 import React, { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PRODUCT_CATEGORIES, formatCurrency, products as seedProducts } from "../products";
 import { submitOrderInquiry } from "../orders";
-import { getPublicProducts } from "../productService";
+import { CATALOG_STORAGE_KEY, getCachedPublicProducts, getPublicProducts } from "../productService";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import type { CartItem, Product, ProductCategory } from "../types";
@@ -116,7 +116,7 @@ export function Storefront() {
   const [activeTab, setActiveTab] = useState<MenuTab>("all");
   const [cmsConfig, setCmsConfig] = useState<StorefrontConfig>(DEFAULT_STOREFRONT_CONFIG);
 
-  const [catalogProducts, setCatalogProducts] = useState<Product[]>(() => seedProducts.filter((product) => product.isActive !== false));
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(() => getCachedPublicProducts());
   const { recentProducts, trackView } = useRecentlyViewed(catalogProducts);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -220,8 +220,19 @@ export function Storefront() {
       if (e.key === STORAGE_KEY || e.key === "kz_storefront_cms_config_v1") {
         setCmsConfig(getCachedStorefrontConfig());
       }
+      if (e.key === CATALOG_STORAGE_KEY || !e.key) {
+        setCatalogProducts(getCachedPublicProducts());
+      }
+    };
+    const handleWindowFocus = () => {
+      getPublicProducts()
+        .then((fresh) => {
+          if (isMounted) setCatalogProducts(fresh.filter((p) => p.isActive === true));
+        })
+        .catch(() => {});
     };
     window.addEventListener("storage", handleStorageUpdate);
+    window.addEventListener("focus", handleWindowFocus);
 
     // Load customized hero image & playlist from Firestore or localStorage
     if (typeof window !== "undefined") {
@@ -253,21 +264,23 @@ export function Storefront() {
         .catch(() => {});
     }
 
+    setCatalogProducts(getCachedPublicProducts());
     getPublicProducts()
       .then((loadedProducts) => {
         if (isMounted) {
-          setCatalogProducts(loadedProducts.filter((p) => p.isActive !== false));
+          setCatalogProducts(loadedProducts.filter((p) => p.isActive === true));
         }
       })
       .catch(() => {
         if (isMounted) {
-          setCatalogProducts(seedProducts.filter((p) => p.isActive !== false));
+          setCatalogProducts(getCachedPublicProducts());
         }
       });
 
     return () => {
       isMounted = false;
       window.removeEventListener("storage", handleStorageUpdate);
+      window.removeEventListener("focus", handleWindowFocus);
     };
   }, []);
 
@@ -540,7 +553,7 @@ export function Storefront() {
                 </button>
               </div>
               <div className="kz-products-grid">
-                {(featuredProducts.length > 0 ? featuredProducts : catalogProducts)
+                {featuredProducts
                   .slice(0, Math.max(1, Number(cmsConfig.bestSellers.maxItems) || 4))
                   .map((product) => (
                     <ProductCard

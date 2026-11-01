@@ -29,6 +29,7 @@ import {
   deleteProduct,
   getAdminProducts,
   saveProduct,
+  saveProductsBatch,
 } from "../../productService";
 import type { AdminOrder, OrderStatus, Product, ProductCategory } from "../../types";
 import {
@@ -316,7 +317,7 @@ export default function AdminPage() {
   const [urlDraft, setUrlDraft] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"All" | ProductCategory>("All");
-  const [stockFilter, setStockFilter] = useState<"All" | "Low" | "Out" | "Hidden">("All");
+  const [stockFilter, setStockFilter] = useState<"All" | "Visible" | "Hidden" | "Featured" | "Low" | "Out">("All");
   const [orderFilter, setOrderFilter] = useState<"All" | OrderStatus>("All");
   const [orderSearch, setOrderSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -553,9 +554,11 @@ export default function AdminPage() {
       const matchCat = categoryFilter === "All" || p.category === categoryFilter;
       const matchStock =
         stockFilter === "All" ||
+        (stockFilter === "Visible" && p.isActive) ||
+        (stockFilter === "Hidden" && !p.isActive) ||
+        (stockFilter === "Featured" && p.featured) ||
         (stockFilter === "Low" && p.stockQuantity > 0 && p.stockQuantity <= p.lowStockThreshold) ||
-        (stockFilter === "Out" && p.stockQuantity <= 0) ||
-        (stockFilter === "Hidden" && !p.isActive);
+        (stockFilter === "Out" && p.stockQuantity <= 0);
 
       return matchSearch && matchCat && matchStock;
     });
@@ -593,20 +596,42 @@ export default function AdminPage() {
   }, [showToast]);
 
   async function handleSyncSeedCatalog() {
-    if (!window.confirm("Sync all default catalog products (with transparent PNGs & visibility flags) to Firestore?")) return;
+    if (!window.confirm("Sync all current catalog products & visibility settings to Firestore?")) return;
     setIsSyncingSeed(true);
     try {
-      let count = 0;
-      for (const item of seedProducts) {
+      const listToSync = products.length > 0 ? products : seedProducts;
+      await saveProductsBatch(listToSync);
+      for (const item of listToSync) {
         await saveProduct(item);
-        count++;
       }
       await refreshProducts();
-      showToast("success", `Synced ${count} products to Firestore catalog!`);
+      showToast("success", `Synced ${listToSync.length} products to live store!`);
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "Failed to sync catalog.");
     } finally {
       setIsSyncingSeed(false);
+    }
+  }
+
+  async function handleBulkVisibility(makeActive: boolean) {
+    const targets = filteredProducts.filter((p) => p.isActive !== makeActive);
+    if (targets.length === 0) {
+      showToast("success", `All listed products are already ${makeActive ? "visible" : "hidden"}.`);
+      return;
+    }
+    const updatedList = targets.map((p) => ({ ...p, isActive: makeActive }));
+    const targetIds = new Set(targets.map((p) => p.id));
+    setProducts((prev) =>
+      prev.map((p) => (targetIds.has(p.id) ? { ...p, isActive: makeActive } : p)),
+    );
+    try {
+      await saveProductsBatch(updatedList);
+      showToast(
+        "success",
+        `${makeActive ? "Shown" : "Hidden"} ${updatedList.length} product(s) on the website homepage.`,
+      );
+    } catch (err) {
+      showToast("error", err instanceof Error ? err.message : "Failed to update visibility.");
     }
   }
 
@@ -670,6 +695,16 @@ export default function AdminPage() {
     if (!user || !hasAdminAccess) return;
     refreshAdminData();
   }, [hasAdminAccess, refreshAdminData, user]);
+
+  async function handleAdminSignOut() {
+    try {
+      await fetch("/api/admin-gate", { method: "DELETE" });
+    } catch {}
+    if (auth) {
+      await signOut(auth);
+    }
+    window.location.href = "/";
+  }
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -915,29 +950,49 @@ export default function AdminPage() {
 
   // In-table quick updates
   async function toggleActive(product: Product) {
+    const nextActive = !product.isActive;
+    const updated: Product = { ...product, isActive: nextActive };
+    // Optimistically update state so UI responds immediately
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? updated : p)),
+    );
+    if (editingProduct.id === product.id) {
+      setEditingProduct((prev) => ({ ...prev, isActive: nextActive }));
+    }
     try {
-      await saveProduct({ ...product, isActive: !product.isActive });
-      setProducts((prev) =>
-        prev.map((p) => (p.id === product.id ? { ...p, isActive: !p.isActive } : p)),
+      await saveProduct(updated);
+      showToast(
+        "success",
+        `"${product.name}" is now ${nextActive ? "VISIBLE on the website" : "HIDDEN from the website"}.`,
       );
-      showToast("success", `"${product.name}" is now ${!product.isActive ? "active" : "hidden"}.`);
-    } catch {
-      showToast("error", "Failed to update status.");
+    } catch (err) {
+      showToast(
+        "error",
+        err instanceof Error ? err.message : "Saved locally, but cloud sync encountered an error.",
+      );
     }
   }
 
   async function toggleFeatured(product: Product) {
+    const nextFeatured = !product.featured;
+    const updated: Product = { ...product, featured: nextFeatured };
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? updated : p)),
+    );
+    if (editingProduct.id === product.id) {
+      setEditingProduct((prev) => ({ ...prev, featured: nextFeatured }));
+    }
     try {
-      await saveProduct({ ...product, featured: !product.featured });
-      setProducts((prev) =>
-        prev.map((p) => (p.id === product.id ? { ...p, featured: !p.featured } : p)),
-      );
+      await saveProduct(updated);
       showToast(
         "success",
-        `"${product.name}" ${!product.featured ? "added to" : "removed from"} Featured.`,
+        `"${product.name}" ${nextFeatured ? "added to Best Sellers (Featured)" : "set to Normal (removed from Best Sellers)"}.`,
       );
-    } catch {
-      showToast("error", "Failed to update featured.");
+    } catch (err) {
+      showToast(
+        "error",
+        err instanceof Error ? err.message : "Saved locally, but cloud sync encountered an error.",
+      );
     }
   }
 
@@ -1267,7 +1322,7 @@ export default function AdminPage() {
           <button
             className="primary-button wide"
             type="button"
-            onClick={() => auth && signOut(auth)}
+            onClick={handleAdminSignOut}
           >
             Sign Out
           </button>
@@ -1319,7 +1374,7 @@ export default function AdminPage() {
           <button className="ghost-button" type="button" onClick={refreshAdminData}>
             Refresh Data
           </button>
-          <button className="primary-button" type="button" onClick={() => auth && signOut(auth)}>
+          <button className="primary-button" type="button" onClick={handleAdminSignOut}>
             Sign out
           </button>
         </div>
@@ -1434,28 +1489,88 @@ export default function AdminPage() {
               </select>
             </label>
             <label>
-              Stock Filter
+              Visibility &amp; Stock Filter
               <select
                 value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)}
               >
-                <option value="All">All Stock Levels</option>
+                <option value="All">All Products ({products.length})</option>
+                <option value="Visible">👁️ Visible on Website ({stats.active})</option>
+                <option value="Hidden">🚫 Hidden from Website ({products.length - stats.active})</option>
+                <option value="Featured">★ Featured (Best Sellers)</option>
                 <option value="Low">Low Stock Alerts</option>
                 <option value="Out">Out of Stock</option>
-                <option value="Hidden">Hidden / Inactive</option>
               </select>
             </label>
-            <div style={{ display: "flex", alignItems: "flex-end" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", flexWrap: "wrap" }}>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => handleBulkVisibility(true)}
+                title="Show all currently filtered products on the website"
+              >
+                👁️ Show Filtered
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => handleBulkVisibility(false)}
+                title="Hide all currently filtered products from the website"
+                style={{ color: "#f87171" }}
+              >
+                🚫 Hide Filtered
+              </button>
               <button
                 className="ghost-button"
                 type="button"
                 disabled={isSyncingSeed}
                 onClick={handleSyncSeedCatalog}
-                title="Push local transparent PNG catalog to Firestore"
+                title="Push all catalog products and visibility settings to Firestore"
               >
-                {isSyncingSeed ? "Syncing..." : "☁️ Sync Default Catalog to DB"}
+                {isSyncingSeed ? "Syncing..." : "☁️ Sync Catalog to DB"}
               </button>
             </div>
+          </div>
+
+          {/* Quick Visibility Filter Pills */}
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              flexWrap: "wrap",
+              padding: "0 16px 14px 16px",
+              alignItems: "center",
+            }}
+          >
+            {(
+              [
+                { id: "All", label: `All Products (${products.length})` },
+                { id: "Visible", label: `👁️ Visible on Website (${stats.active})` },
+                { id: "Hidden", label: `🚫 Hidden from Website (${products.length - stats.active})` },
+                { id: "Featured", label: `★ In Best Sellers (${products.filter((p) => p.featured).length})` },
+              ] as const
+            ).map((pill) => {
+              const active = stockFilter === pill.id;
+              return (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setStockFilter(pill.id)}
+                  style={{
+                    padding: "6px 13px",
+                    borderRadius: "999px",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: active ? "var(--cyan)" : "rgba(15, 23, 42, 0.75)",
+                    color: active ? "#020617" : "#cbd5e1",
+                    border: active ? "1px solid var(--cyan)" : "1px solid rgba(255, 255, 255, 0.1)",
+                  }}
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
           </div>
 
           <table className="admin-table">
@@ -1465,15 +1580,21 @@ export default function AdminPage() {
                 <th>Category</th>
                 <th>Stock</th>
                 <th>Price</th>
-                <th>Status</th>
-                <th>Featured</th>
+                <th>Website Visibility</th>
+                <th>Best Sellers</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <tr key={product.id}>
+                  <tr
+                    key={product.id}
+                    style={{
+                      opacity: product.isActive ? 1 : 0.58,
+                      transition: "opacity 0.15s ease",
+                    }}
+                  >
                     <td>
                       <div className="table-product-row">
                         {product.imageUrl ? (
@@ -1516,9 +1637,15 @@ export default function AdminPage() {
                         className={`table-quick-toggle ${product.isActive ? "is-active" : ""}`}
                         type="button"
                         onClick={() => toggleActive(product)}
-                        title="Toggle visibility on storefront"
+                        title={product.isActive ? "Click to HIDE this product from the website" : "Click to SHOW this product on the website"}
+                        style={{
+                          borderColor: product.isActive ? "rgba(16, 185, 129, 0.5)" : "rgba(248, 113, 113, 0.45)",
+                          color: product.isActive ? "#34d399" : "#f87171",
+                          background: product.isActive ? "rgba(16, 185, 129, 0.12)" : "rgba(248, 113, 113, 0.12)",
+                          fontWeight: 700,
+                        }}
                       >
-                        {product.isActive ? "Active" : "Hidden"}
+                        {product.isActive ? "👁️ Visible" : "🚫 Hidden"}
                       </button>
                     </td>
                     <td>
@@ -1526,13 +1653,25 @@ export default function AdminPage() {
                         className={`table-quick-toggle ${product.featured ? "is-featured" : ""}`}
                         type="button"
                         onClick={() => toggleFeatured(product)}
-                        title="Toggle featured placement"
+                        title={product.featured ? "Click to remove from Best Sellers (set to Normal)" : "Click to feature in Best Sellers"}
                       >
                         {product.featured ? "★ Featured" : "☆ Normal"}
                       </button>
                     </td>
                     <td>
                       <div className="table-actions-cell">
+                        <button
+                          className="table-clone-btn"
+                          type="button"
+                          onClick={() => toggleActive(product)}
+                          title={product.isActive ? "Hide product from website" : "Show product on website"}
+                          style={{
+                            color: product.isActive ? "#fbbf24" : "#34d399",
+                            borderColor: product.isActive ? "rgba(251, 191, 36, 0.35)" : "rgba(52, 211, 153, 0.35)",
+                          }}
+                        >
+                          {product.isActive ? "Hide" : "Show"}
+                        </button>
                         <button
                           className="table-edit-btn"
                           type="button"

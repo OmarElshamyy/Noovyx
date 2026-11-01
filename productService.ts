@@ -1,6 +1,7 @@
 import {
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   collection,
   limit,
@@ -15,7 +16,16 @@ import { sanitizeImageSrc } from "./storefrontConfig";
 import type { Product, ProductCategory } from "./types";
 
 const PRODUCT_COLLECTION = "products";
+const STOREFRONT_SETTINGS_DOC = "storefront";
 const MAX_PRODUCT_QUERY_LIMIT = 200;
+
+export const CATALOG_STORAGE_KEY = "noovyx_catalog_state_v1";
+
+export interface CatalogState {
+  overrides: Record<string, Record<string, unknown>>;
+  deletedIds: string[];
+  updatedAt: number;
+}
 
 const allowedCategories: ProductCategory[] = [
   "IEMs",
@@ -31,12 +41,13 @@ function cleanText(value: unknown, fallback = "") {
 }
 
 function cleanNumber(value: unknown, fallback = 0) {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const num = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(num) ? num : fallback;
 }
 
 export function productFromData(id: string, data: Record<string, unknown>): Product {
   const category = cleanText(data.category);
-  const stockQuantity = Math.max(0, Math.trunc(cleanNumber(data.stockQuantity)));
+  const stockQuantity = Math.max(0, Math.trunc(cleanNumber(data.stockQuantity, 15)));
   const imageUrl = sanitizeImageSrc(cleanText(data.imageUrl));
   const imageUrls = Array.isArray(data.imageUrls)
     ? data.imageUrls.map((url) => sanitizeImageSrc(cleanText(url))).filter(Boolean).slice(0, 8)
@@ -49,7 +60,7 @@ export function productFromData(id: string, data: Record<string, unknown>): Prod
     category: allowedCategories.includes(category as ProductCategory)
       ? (category as ProductCategory)
       : "IEMs",
-    price: Math.max(0, Math.round(cleanNumber(data.price))),
+    price: Math.max(0, Math.round(cleanNumber(data.price, 0))),
     image: cleanText(data.image, "KZ").slice(0, 4).toUpperCase(),
     imageUrl,
     imageUrls: imageUrls.length > 0 ? imageUrls : imageUrl ? [imageUrl] : [],
@@ -65,85 +76,406 @@ export function productFromData(id: string, data: Record<string, unknown>): Prod
   };
 }
 
-function productToFirestore(product: Product) {
-  const stockQuantity = Math.max(0, Math.trunc(product.stockQuantity));
-  const safeImageUrl = sanitizeImageSrc(product.imageUrl.trim());
-  const safeImageUrls = product.imageUrls
-    .map((url) => sanitizeImageSrc(url.trim()))
+function productToPlainObject(product: Product): Record<string, unknown> {
+  const stockQuantity = Math.max(0, Math.trunc(Number(product.stockQuantity) || 0));
+  const safeImageUrl = sanitizeImageSrc((product.imageUrl || "").trim());
+  const safeImageUrls = (Array.isArray(product.imageUrls) ? product.imageUrls : [])
+    .map((url) => sanitizeImageSrc(String(url).trim()))
     .filter(Boolean)
     .slice(0, 8);
 
   return {
-    slug: product.slug.trim().slice(0, 100),
+    id: (product.id || product.slug).trim().slice(0, 100),
+    slug: (product.slug || product.id).trim().slice(0, 100),
     name: product.name.trim().slice(0, 160),
-    category: product.category,
-    price: Math.max(0, Math.round(Number(product.price))),
-    image: product.image.trim().slice(0, 4).toUpperCase(),
+    category: allowedCategories.includes(product.category) ? product.category : "IEMs",
+    price: Math.max(0, Math.round(Number(product.price) || 0)),
+    image: (product.image || "KZ").trim().slice(0, 4).toUpperCase(),
     imageUrl: safeImageUrl,
-    imageUrls: safeImageUrls,
-    description: product.description.trim().slice(0, 2000),
-    specs: product.specs.map((spec) => spec.trim().slice(0, 200)).filter(Boolean).slice(0, 8),
+    imageUrls: safeImageUrls.length > 0 ? safeImageUrls : safeImageUrl ? [safeImageUrl] : [],
+    description: (product.description || "").trim().slice(0, 2000),
+    specs: (Array.isArray(product.specs) ? product.specs : [])
+      .map((spec) => String(spec).trim().slice(0, 200))
+      .filter(Boolean)
+      .slice(0, 8),
     inStock: stockQuantity > 0,
     stockQuantity,
-    lowStockThreshold: Math.max(0, Math.trunc(product.lowStockThreshold)),
-    isActive: product.isActive,
-    featured: product.featured,
+    lowStockThreshold: Math.max(0, Math.trunc(Number(product.lowStockThreshold) || 3)),
+    isActive: Boolean(product.isActive),
+    featured: Boolean(product.featured),
+  };
+}
+
+function productToFirestore(product: Product) {
+  const plain = productToPlainObject(product);
+  const { id: _unusedId, ...rest } = plain;
+  void _unusedId;
+  return {
+    ...rest,
     updatedAt: serverTimestamp(),
   };
 }
 
+function normalizeCatalogState(raw: unknown): CatalogState {
+  if (!raw || typeof raw !== "object") {
+    return { overrides: {}, deletedIds: [], updatedAt: 0 };
+  }
+  const obj = raw as Record<string, unknown>;
+  const overrides: Record<string, Record<string, unknown>> = {};
+  if (obj.overrides && typeof obj.overrides === "object") {
+    for (const [k, v] of Object.entries(obj.overrides as Record<string, unknown>)) {
+      if (k === "__proto__" || k === "constructor" || k === "prototype") continue;
+      if (v && typeof v === "object") {
+        overrides[k] = v as Record<string, unknown>;
+      }
+    }
+  }
+  const deletedIds = Array.isArray(obj.deletedIds)
+    ? obj.deletedIds.map((id) => String(id).trim()).filter(Boolean)
+    : [];
+  const updatedAt = typeof obj.updatedAt === "number" ? obj.updatedAt : 0;
+  return { overrides, deletedIds, updatedAt };
+}
+
+export function getLocalCatalogState(): CatalogState {
+  if (typeof window === "undefined") {
+    return { overrides: {}, deletedIds: [], updatedAt: 0 };
+  }
+  try {
+    const raw = localStorage.getItem(CATALOG_STORAGE_KEY);
+    if (!raw) return { overrides: {}, deletedIds: [], updatedAt: 0 };
+    return normalizeCatalogState(JSON.parse(raw));
+  } catch {
+    return { overrides: {}, deletedIds: [], updatedAt: 0 };
+  }
+}
+
+function setLocalCatalogState(state: CatalogState): void {
+  if (typeof window === "undefined") return;
+  try {
+    const serialized = JSON.stringify(state);
+    localStorage.setItem(CATALOG_STORAGE_KEY, serialized);
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: CATALOG_STORAGE_KEY,
+        newValue: serialized,
+      }),
+    );
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+function mergeTwoCatalogStates(a: CatalogState, b: CatalogState): CatalogState {
+  const primary = b.updatedAt >= a.updatedAt ? b : a;
+  const secondary = b.updatedAt >= a.updatedAt ? a : b;
+
+  const mergedOverrides: Record<string, Record<string, unknown>> = {
+    ...secondary.overrides,
+    ...primary.overrides,
+  };
+  const deletedSet = new Set<string>([
+    ...secondary.deletedIds.filter((id) => !(id in primary.overrides)),
+    ...primary.deletedIds,
+  ]);
+  for (const delId of deletedSet) {
+    delete mergedOverrides[delId];
+  }
+
+  return {
+    overrides: mergedOverrides,
+    deletedIds: Array.from(deletedSet),
+    updatedAt: Math.max(a.updatedAt, b.updatedAt),
+  };
+}
+
+function buildMergedCatalog(
+  firestoreProducts: Product[],
+  catalogState: CatalogState,
+): Product[] {
+  const map = new Map<string, Product>();
+
+  // 1. Seed products form the baseline catalog
+  for (const seed of seedProducts) {
+    map.set(seed.id, { ...seed });
+  }
+
+  // 2. Overlay any products fetched from Firestore "products" collection
+  for (const fp of firestoreProducts) {
+    const existing = map.get(fp.id);
+    map.set(fp.id, existing ? { ...existing, ...fp } : fp);
+  }
+
+  // 3. Overlay catalogState.overrides (which works for both public & admin users and tracks isActive: false on seed products)
+  for (const [id, overrideData] of Object.entries(catalogState.overrides)) {
+    const existing = map.get(id);
+    const mergedRaw = existing
+      ? ({ ...existing, ...overrideData } as Record<string, unknown>)
+      : overrideData;
+    map.set(id, productFromData(id, mergedRaw));
+  }
+
+  // 4. Remove any deleted products
+  for (const delId of catalogState.deletedIds) {
+    map.delete(delId);
+  }
+
+  return Array.from(map.values());
+}
+
+/**
+ * Synchronous cached public products for instant initial render without flashing hidden items.
+ */
+export function getCachedPublicProducts(): Product[] {
+  const localState = getLocalCatalogState();
+  return buildMergedCatalog([], localState).filter((product) => product.isActive === true);
+}
+
+/**
+ * Loads all active public products for the storefront homepage.
+ * Merges seedProducts + Firestore "products" collection + Firestore "settings/storefront.catalogState" + localStorage.
+ */
 export async function getPublicProducts(): Promise<Product[]> {
+  const localState = getLocalCatalogState();
+
   if (!db) {
-    return seedProducts.filter((product) => product.isActive);
+    return buildMergedCatalog([], localState).filter((product) => product.isActive === true);
   }
 
-  const snapshot = await getDocs(
-    query(
-      collection(db, PRODUCT_COLLECTION),
-      where("isActive", "==", true),
-      limit(MAX_PRODUCT_QUERY_LIMIT),
+  const [settingsResult, productsResult] = await Promise.allSettled([
+    getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC)),
+    getDocs(
+      query(
+        collection(db, PRODUCT_COLLECTION),
+        where("isActive", "==", true),
+        limit(MAX_PRODUCT_QUERY_LIMIT),
+      ),
     ),
-  );
-  const liveProducts = snapshot.docs
-    .map((productDoc) => productFromData(productDoc.id, productDoc.data()))
-    .filter((product) => product.isActive);
+  ]);
 
-  return liveProducts.length > 0 ? liveProducts : seedProducts;
+  let remoteState: CatalogState = { overrides: {}, deletedIds: [], updatedAt: 0 };
+  if (settingsResult.status === "fulfilled" && settingsResult.value.exists()) {
+    const data = settingsResult.value.data();
+    remoteState = normalizeCatalogState(data.catalogState);
+  }
+
+  let firestoreProducts: Product[] = [];
+  if (productsResult.status === "fulfilled") {
+    firestoreProducts = productsResult.value.docs.map((productDoc) =>
+      productFromData(productDoc.id, productDoc.data()),
+    );
+  }
+
+  const combinedState = mergeTwoCatalogStates(localState, remoteState);
+  if (remoteState.updatedAt > localState.updatedAt) {
+    setLocalCatalogState(combinedState);
+  }
+
+  return buildMergedCatalog(firestoreProducts, combinedState).filter(
+    (product) => product.isActive === true,
+  );
 }
 
+/**
+ * Loads all products (both Active and Hidden) for the Admin Panel.
+ */
 export async function getAdminProducts(): Promise<Product[]> {
+  const localState = getLocalCatalogState();
+
   if (!db) {
-    throw new Error("Firebase is not configured.");
+    return buildMergedCatalog([], localState);
   }
 
-  const snapshot = await getDocs(
-    query(collection(db, PRODUCT_COLLECTION), limit(MAX_PRODUCT_QUERY_LIMIT)),
-  );
-  return snapshot.docs.map((productDoc) =>
-    productFromData(productDoc.id, productDoc.data()),
-  );
+  const [settingsResult, productsResult] = await Promise.allSettled([
+    getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC)),
+    getDocs(query(collection(db, PRODUCT_COLLECTION), limit(MAX_PRODUCT_QUERY_LIMIT))),
+  ]);
+
+  let remoteState: CatalogState = { overrides: {}, deletedIds: [], updatedAt: 0 };
+  if (settingsResult.status === "fulfilled" && settingsResult.value.exists()) {
+    const data = settingsResult.value.data();
+    remoteState = normalizeCatalogState(data.catalogState);
+  }
+
+  let firestoreProducts: Product[] = [];
+  if (productsResult.status === "fulfilled") {
+    firestoreProducts = productsResult.value.docs.map((productDoc) =>
+      productFromData(productDoc.id, productDoc.data()),
+    );
+  }
+
+  const combinedState = mergeTwoCatalogStates(localState, remoteState);
+  setLocalCatalogState(combinedState);
+
+  return buildMergedCatalog(firestoreProducts, combinedState);
 }
 
+/**
+ * Saves a product (including its isActive visibility and featured status) to:
+ * 1. localStorage (instant cross-tab sync)
+ * 2. Firestore settings/storefront.catalogState (publicly readable by all storefront visitors)
+ * 3. Firestore products/{productId} collection
+ */
 export async function saveProduct(product: Product): Promise<void> {
-  if (!db) {
-    throw new Error("Firebase is not configured.");
+  const productId = (product.id || product.slug).trim();
+  if (!productId) {
+    throw new Error("Product ID is required.");
   }
 
-  const productId = product.id || product.slug;
-  await setDoc(
-    doc(db, PRODUCT_COLLECTION, productId),
-    {
-      ...productToFirestore(product),
-      createdAt: serverTimestamp(),
+  const plainProduct = productToPlainObject({
+    ...product,
+    id: productId,
+    slug: product.slug || productId,
+  });
+
+  // 1. Update local state & merge with latest remote state if available
+  let baseState = getLocalCatalogState();
+  if (db) {
+    try {
+      const snap = await getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC));
+      if (snap.exists()) {
+        const remoteState = normalizeCatalogState(snap.data().catalogState);
+        baseState = mergeTwoCatalogStates(baseState, remoteState);
+      }
+    } catch {
+      // Proceed with local state
+    }
+  }
+
+  const nextState: CatalogState = {
+    overrides: {
+      ...baseState.overrides,
+      [productId]: plainProduct,
     },
-    { merge: true },
-  );
+    deletedIds: baseState.deletedIds.filter((id) => id !== productId),
+    updatedAt: Date.now(),
+  };
+
+  setLocalCatalogState(nextState);
+
+  if (!db) {
+    return;
+  }
+
+  // 2. Persist to settings/storefront and products/{productId}
+  const results = await Promise.allSettled([
+    setDoc(
+      doc(db, "settings", STOREFRONT_SETTINGS_DOC),
+      {
+        catalogState: nextState,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    ),
+    setDoc(
+      doc(db, PRODUCT_COLLECTION, productId),
+      {
+        ...productToFirestore({
+          ...product,
+          id: productId,
+          slug: product.slug || productId,
+        }),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true },
+    ),
+  ]);
+
+  const bothFailed = results.every((r) => r.status === "rejected");
+  if (bothFailed && results[0].status === "rejected") {
+    throw results[0].reason;
+  }
+}
+
+/**
+ * Batch-saves multiple products at once (used by Sync Default Catalog or Bulk Hide/Show).
+ */
+export async function saveProductsBatch(productsList: Product[]): Promise<void> {
+  let baseState = getLocalCatalogState();
+  if (db) {
+    try {
+      const snap = await getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC));
+      if (snap.exists()) {
+        const remoteState = normalizeCatalogState(snap.data().catalogState);
+        baseState = mergeTwoCatalogStates(baseState, remoteState);
+      }
+    } catch {
+      // Proceed with local state
+    }
+  }
+
+  const nextOverrides = { ...baseState.overrides };
+  const restoredIds = new Set<string>();
+
+  for (const prod of productsList) {
+    const pid = (prod.id || prod.slug).trim();
+    if (!pid) continue;
+    nextOverrides[pid] = productToPlainObject({ ...prod, id: pid, slug: prod.slug || pid });
+    restoredIds.add(pid);
+  }
+
+  const nextState: CatalogState = {
+    overrides: nextOverrides,
+    deletedIds: baseState.deletedIds.filter((id) => !restoredIds.has(id)),
+    updatedAt: Date.now(),
+  };
+
+  setLocalCatalogState(nextState);
+
+  if (db) {
+    await setDoc(
+      doc(db, "settings", STOREFRONT_SETTINGS_DOC),
+      {
+        catalogState: nextState,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+  }
 }
 
 export async function deleteProduct(productId: string): Promise<void> {
-  if (!db) {
-    throw new Error("Firebase is not configured.");
+  const cleanId = productId.trim();
+  if (!cleanId) return;
+
+  let baseState = getLocalCatalogState();
+  if (db) {
+    try {
+      const snap = await getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC));
+      if (snap.exists()) {
+        const remoteState = normalizeCatalogState(snap.data().catalogState);
+        baseState = mergeTwoCatalogStates(baseState, remoteState);
+      }
+    } catch {
+      // Proceed with local state
+    }
   }
 
-  await deleteDoc(doc(db, PRODUCT_COLLECTION, productId));
+  const nextOverrides = { ...baseState.overrides };
+  delete nextOverrides[cleanId];
+
+  const nextDeleted = Array.from(new Set([...baseState.deletedIds, cleanId]));
+  const nextState: CatalogState = {
+    overrides: nextOverrides,
+    deletedIds: nextDeleted,
+    updatedAt: Date.now(),
+  };
+
+  setLocalCatalogState(nextState);
+
+  if (!db) {
+    return;
+  }
+
+  await Promise.allSettled([
+    setDoc(
+      doc(db, "settings", STOREFRONT_SETTINGS_DOC),
+      {
+        catalogState: nextState,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    ),
+    deleteDoc(doc(db, PRODUCT_COLLECTION, cleanId)),
+  ]);
 }
