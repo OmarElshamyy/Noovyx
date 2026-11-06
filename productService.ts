@@ -8,7 +8,6 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { products as seedProducts } from "./products";
@@ -142,7 +141,9 @@ export function getLocalCatalogState(): CatalogState {
     return { overrides: {}, deletedIds: [], updatedAt: 0 };
   }
   try {
-    const raw = localStorage.getItem(CATALOG_STORAGE_KEY);
+    const raw =
+      localStorage.getItem(CATALOG_STORAGE_KEY) ||
+      localStorage.getItem("noovyx_catalog_state_v2");
     if (!raw) return { overrides: {}, deletedIds: [], updatedAt: 0 };
     return normalizeCatalogState(JSON.parse(raw));
   } catch {
@@ -195,7 +196,7 @@ function buildMergedCatalog(
 ): Product[] {
   const map = new Map<string, Product>();
 
-  // 1. Seed products form the baseline catalog
+  // 1. Seed products from products.ts form the baseline catalog
   for (const seed of seedProducts) {
     map.set(seed.id, { ...seed });
   }
@@ -206,7 +207,7 @@ function buildMergedCatalog(
     map.set(fp.id, existing ? { ...existing, ...fp } : fp);
   }
 
-  // 3. Overlay catalogState.overrides (which works for both public & admin users and tracks isActive: false on seed products)
+  // 3. Overlay catalogState.overrides (from local server /api/local-catalog and localStorage)
   for (const [id, overrideData] of Object.entries(catalogState.overrides)) {
     const existing = map.get(id);
     const mergedRaw = existing
@@ -223,8 +224,39 @@ function buildMergedCatalog(
   return Array.from(map.values());
 }
 
+async function fetchLocalServerCatalogState(): Promise<CatalogState> {
+  if (typeof window === "undefined") {
+    return { overrides: {}, deletedIds: [], updatedAt: 0 };
+  }
+  try {
+    const res = await fetch("/api/local-catalog", { cache: "no-store" });
+    if (!res.ok) return { overrides: {}, deletedIds: [], updatedAt: 0 };
+    const data = (await res.json()) as { catalogState?: unknown };
+    return normalizeCatalogState(data.catalogState);
+  } catch {
+    return { overrides: {}, deletedIds: [], updatedAt: 0 };
+  }
+}
+
+async function persistToLocalServer(state: CatalogState): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const fullCatalog = buildMergedCatalog([], state);
+    await fetch("/api/local-catalog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        catalogState: state,
+        fullCatalog,
+      }),
+    });
+  } catch {
+    // Ignore network errors if offline
+  }
+}
+
 /**
- * Synchronous cached public products for instant initial render without flashing hidden items.
+ * Synchronous cached public products for initial render.
  */
 export function getCachedPublicProducts(): Product[] {
   const localState = getLocalCatalogState();
@@ -233,88 +265,53 @@ export function getCachedPublicProducts(): Product[] {
 
 /**
  * Loads all active public products for the storefront homepage.
- * Merges seedProducts + Firestore "products" collection + Firestore "settings/storefront.catalogState" + localStorage.
+ * Works locally across normal & private/incognito windows via /api/local-catalog and products.ts,
+ * without requiring Firebase!
  */
 export async function getPublicProducts(): Promise<Product[]> {
   const localState = getLocalCatalogState();
+  const serverState = await fetchLocalServerCatalogState();
 
-  if (!db) {
-    return buildMergedCatalog([], localState).filter((product) => product.isActive === true);
-  }
+  let combinedState = mergeTwoCatalogStates(localState, serverState);
 
-  const [settingsResult, productsResult] = await Promise.allSettled([
-    getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC)),
-    getDocs(
-      query(
-        collection(db, PRODUCT_COLLECTION),
-        where("isActive", "==", true),
-        limit(MAX_PRODUCT_QUERY_LIMIT),
-      ),
-    ),
-  ]);
-
-  let remoteState: CatalogState = { overrides: {}, deletedIds: [], updatedAt: 0 };
-  if (settingsResult.status === "fulfilled" && settingsResult.value.exists()) {
-    const data = settingsResult.value.data();
-    remoteState = normalizeCatalogState(data.catalogState);
-  }
-
-  let firestoreProducts: Product[] = [];
-  if (productsResult.status === "fulfilled") {
-    firestoreProducts = productsResult.value.docs.map((productDoc) =>
-      productFromData(productDoc.id, productDoc.data()),
-    );
-  }
-
-  const combinedState = mergeTwoCatalogStates(localState, remoteState);
-  if (remoteState.updatedAt > localState.updatedAt) {
+  if (combinedState.updatedAt > localState.updatedAt) {
     setLocalCatalogState(combinedState);
   }
 
-  return buildMergedCatalog(firestoreProducts, combinedState).filter(
+  return buildMergedCatalog([], combinedState).filter(
     (product) => product.isActive === true,
   );
 }
 
 /**
  * Loads all products (both Active and Hidden) for the Admin Panel.
+ * Also automatically syncs any existing browser localStorage overrides to the local server file
+ * (local-catalog-state.json & products.ts) so Private/Incognito windows immediately match!
  */
 export async function getAdminProducts(): Promise<Product[]> {
   const localState = getLocalCatalogState();
+  const serverState = await fetchLocalServerCatalogState();
 
-  if (!db) {
-    return buildMergedCatalog([], localState);
-  }
-
-  const [settingsResult, productsResult] = await Promise.allSettled([
-    getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC)),
-    getDocs(query(collection(db, PRODUCT_COLLECTION), limit(MAX_PRODUCT_QUERY_LIMIT))),
-  ]);
-
-  let remoteState: CatalogState = { overrides: {}, deletedIds: [], updatedAt: 0 };
-  if (settingsResult.status === "fulfilled" && settingsResult.value.exists()) {
-    const data = settingsResult.value.data();
-    remoteState = normalizeCatalogState(data.catalogState);
-  }
-
-  let firestoreProducts: Product[] = [];
-  if (productsResult.status === "fulfilled") {
-    firestoreProducts = productsResult.value.docs.map((productDoc) =>
-      productFromData(productDoc.id, productDoc.data()),
-    );
-  }
-
-  const combinedState = mergeTwoCatalogStates(localState, remoteState);
+  const combinedState = mergeTwoCatalogStates(localState, serverState);
   setLocalCatalogState(combinedState);
 
-  return buildMergedCatalog(firestoreProducts, combinedState);
+  // If the admin's browser localStorage had newer visibility/product changes than the server file,
+  // automatically persist them to /api/local-catalog (and products.ts) right away!
+  if (
+    localState.updatedAt > serverState.updatedAt &&
+    (Object.keys(localState.overrides).length > 0 || localState.deletedIds.length > 0)
+  ) {
+    void persistToLocalServer(combinedState);
+  }
+
+  return buildMergedCatalog([], combinedState);
 }
 
 /**
  * Saves a product (including its isActive visibility and featured status) to:
- * 1. localStorage (instant cross-tab sync)
- * 2. Firestore settings/storefront.catalogState (publicly readable by all storefront visitors)
- * 3. Firestore products/{productId} collection
+ * 1. localStorage (instant same-session update)
+ * 2. Local server (/api/local-catalog -> writes local-catalog-state.json & products.ts so Private Windows & Git have it!)
+ * 3. Firestore (optional background sync if configured)
  */
 export async function saveProduct(product: Product): Promise<void> {
   const productId = (product.id || product.slug).trim();
@@ -328,19 +325,9 @@ export async function saveProduct(product: Product): Promise<void> {
     slug: product.slug || productId,
   });
 
-  // 1. Update local state & merge with latest remote state if available
-  let baseState = getLocalCatalogState();
-  if (db) {
-    try {
-      const snap = await getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC));
-      if (snap.exists()) {
-        const remoteState = normalizeCatalogState(snap.data().catalogState);
-        baseState = mergeTwoCatalogStates(baseState, remoteState);
-      }
-    } catch {
-      // Proceed with local state
-    }
-  }
+  const localState = getLocalCatalogState();
+  const serverState = await fetchLocalServerCatalogState();
+  const baseState = mergeTwoCatalogStates(localState, serverState);
 
   const nextState: CatalogState = {
     overrides: {
@@ -352,57 +339,42 @@ export async function saveProduct(product: Product): Promise<void> {
   };
 
   setLocalCatalogState(nextState);
+  await persistToLocalServer(nextState);
 
-  if (!db) {
-    return;
-  }
-
-  // 2. Persist to settings/storefront and products/{productId}
-  const results = await Promise.allSettled([
-    setDoc(
-      doc(db, "settings", STOREFRONT_SETTINGS_DOC),
-      {
-        catalogState: nextState,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true },
-    ),
-    setDoc(
-      doc(db, PRODUCT_COLLECTION, productId),
-      {
-        ...productToFirestore({
-          ...product,
-          id: productId,
-          slug: product.slug || productId,
-        }),
-        createdAt: serverTimestamp(),
-      },
-      { merge: true },
-    ),
-  ]);
-
-  const bothFailed = results.every((r) => r.status === "rejected");
-  if (bothFailed && results[0].status === "rejected") {
-    throw results[0].reason;
+  if (db) {
+    void Promise.allSettled([
+      setDoc(
+        doc(db, PRODUCT_COLLECTION, productId),
+        {
+          ...productToFirestore({
+            ...product,
+            id: productId,
+            slug: product.slug || productId,
+          }),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+      setDoc(
+        doc(db, "settings", STOREFRONT_SETTINGS_DOC),
+        {
+          catalogState: nextState,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      ),
+    ]);
   }
 }
 
 /**
- * Batch-saves multiple products at once (used by Sync Default Catalog or Bulk Hide/Show).
+ * Batch-saves multiple products at once (used by Sync Catalog or Bulk Hide/Show).
+ * Writes directly to /api/local-catalog (updating local-catalog-state.json & products.ts).
  */
 export async function saveProductsBatch(productsList: Product[]): Promise<void> {
-  let baseState = getLocalCatalogState();
-  if (db) {
-    try {
-      const snap = await getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC));
-      if (snap.exists()) {
-        const remoteState = normalizeCatalogState(snap.data().catalogState);
-        baseState = mergeTwoCatalogStates(baseState, remoteState);
-      }
-    } catch {
-      // Proceed with local state
-    }
-  }
+  const localState = getLocalCatalogState();
+  const serverState = await fetchLocalServerCatalogState();
+  const baseState = mergeTwoCatalogStates(localState, serverState);
 
   const nextOverrides = { ...baseState.overrides };
   const restoredIds = new Set<string>();
@@ -421,35 +393,16 @@ export async function saveProductsBatch(productsList: Product[]): Promise<void> 
   };
 
   setLocalCatalogState(nextState);
-
-  if (db) {
-    await setDoc(
-      doc(db, "settings", STOREFRONT_SETTINGS_DOC),
-      {
-        catalogState: nextState,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true },
-    );
-  }
+  await persistToLocalServer(nextState);
 }
 
 export async function deleteProduct(productId: string): Promise<void> {
   const cleanId = productId.trim();
   if (!cleanId) return;
 
-  let baseState = getLocalCatalogState();
-  if (db) {
-    try {
-      const snap = await getDoc(doc(db, "settings", STOREFRONT_SETTINGS_DOC));
-      if (snap.exists()) {
-        const remoteState = normalizeCatalogState(snap.data().catalogState);
-        baseState = mergeTwoCatalogStates(baseState, remoteState);
-      }
-    } catch {
-      // Proceed with local state
-    }
-  }
+  const localState = getLocalCatalogState();
+  const serverState = await fetchLocalServerCatalogState();
+  const baseState = mergeTwoCatalogStates(localState, serverState);
 
   const nextOverrides = { ...baseState.overrides };
   delete nextOverrides[cleanId];
@@ -462,20 +415,19 @@ export async function deleteProduct(productId: string): Promise<void> {
   };
 
   setLocalCatalogState(nextState);
+  await persistToLocalServer(nextState);
 
-  if (!db) {
-    return;
+  if (db) {
+    void Promise.allSettled([
+      deleteDoc(doc(db, PRODUCT_COLLECTION, cleanId)),
+      setDoc(
+        doc(db, "settings", STOREFRONT_SETTINGS_DOC),
+        {
+          catalogState: nextState,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      ),
+    ]);
   }
-
-  await Promise.allSettled([
-    setDoc(
-      doc(db, "settings", STOREFRONT_SETTINGS_DOC),
-      {
-        catalogState: nextState,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true },
-    ),
-    deleteDoc(doc(db, PRODUCT_COLLECTION, cleanId)),
-  ]);
 }

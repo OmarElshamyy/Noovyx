@@ -745,6 +745,26 @@ export function getCachedStorefrontConfig(): StorefrontConfig {
 
 export async function loadStorefrontConfig(): Promise<StorefrontConfig> {
   const cached = getCachedStorefrontConfig();
+
+  // 1. Try local server state (/api/local-catalog) so Private/Incognito windows get CMS changes too
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/local-catalog", { cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as { cmsConfig?: Record<string, unknown> };
+        if (data.cmsConfig && typeof data.cmsConfig === "object") {
+          const merged = mergeStorefrontConfig(data.cmsConfig);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+          } catch {}
+          return merged;
+        }
+      }
+    } catch {
+      // Ignore and try fallback
+    }
+  }
+
   if (!db) return cached;
 
   try {
@@ -771,22 +791,33 @@ export async function saveStorefrontConfig(config: StorefrontConfig): Promise<vo
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
     } catch {}
+    try {
+      await fetch("/api/local-catalog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cmsConfig: sanitized }),
+      });
+    } catch {}
   }
 
   if (db) {
-    await setDoc(
-      doc(db, "settings", "storefront"),
-      {
-        cmsConfig: sanitized,
-        heroImages: sanitized.hero.slides.map((s) => s.image),
-        heroTitles: sanitized.hero.slides.map((s) => s.title),
-        heroImage: sanitized.hero.slides[0]?.image || "/products/kz-castor-bass.png",
-        heroProductName: sanitized.hero.slides[0]?.title || "KZ Flagship Audio",
-        shuffle: sanitized.hero.autoPlay,
-        intervalSeconds: sanitized.hero.intervalSeconds,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true },
-    );
+    try {
+      await setDoc(
+        doc(db, "settings", "storefront"),
+        {
+          cmsConfig: sanitized,
+          heroImages: sanitized.hero.slides.map((s) => s.image),
+          heroTitles: sanitized.hero.slides.map((s) => s.title),
+          heroImage: sanitized.hero.slides[0]?.image || "/products/kz-castor-bass.png",
+          heroProductName: sanitized.hero.slides[0]?.title || "KZ Flagship Audio",
+          shuffle: sanitized.hero.autoPlay,
+          intervalSeconds: sanitized.hero.intervalSeconds,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true },
+      );
+    } catch {
+      // Saved locally via /api/local-catalog & localStorage
+    }
   }
 }
