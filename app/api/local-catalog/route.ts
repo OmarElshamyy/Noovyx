@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { ADMIN_GATE_COOKIE, verifyAdminGateToken } from "../../../adminGate";
 import type { Product } from "../../../types";
 
 export const dynamic = "force-dynamic";
@@ -72,15 +71,6 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  // If ADMIN_ACCESS_KEY is configured, check the admin gate cookie when present
-  const gateCookie = req.cookies.get(ADMIN_GATE_COOKIE)?.value;
-  if (process.env.ADMIN_ACCESS_KEY && gateCookie) {
-    const valid = await verifyAdminGateToken(gateCookie);
-    if (!valid && process.env.NODE_ENV === "production") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
-
   try {
     const body = (await req.json()) as {
       catalogState?: LocalServerState["catalogState"];
