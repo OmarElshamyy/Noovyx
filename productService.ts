@@ -440,12 +440,13 @@ export async function saveProductsBatch(productsList: Product[]): Promise<void> 
   await persistToLocalServer(nextState);
 
   if (db) {
+    const firestoreDb = db;
     await Promise.allSettled([
       ...productsList.map((prod) => {
         const pid = (prod.id || prod.slug).trim();
         if (!pid) return Promise.resolve();
         return setDoc(
-          doc(db, PRODUCT_COLLECTION, pid),
+          doc(firestoreDb, PRODUCT_COLLECTION, pid),
           {
             ...productToFirestore({
               ...prod,
