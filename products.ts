@@ -34,7 +34,7 @@ export const products: Product[] = [
     "stockQuantity": 18,
     "lowStockThreshold": 4,
     "isActive": true,
-    "featured": true
+    "featured": false
   },
   {
     "id": "kz-zsn-pro-x",
@@ -58,7 +58,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 24,
     "lowStockThreshold": 5,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -84,7 +84,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 14,
     "lowStockThreshold": 3,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -110,7 +110,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 16,
     "lowStockThreshold": 4,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -136,7 +136,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 8,
     "lowStockThreshold": 2,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -162,7 +162,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 30,
     "lowStockThreshold": 6,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -188,7 +188,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 6,
     "lowStockThreshold": 2,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -214,7 +214,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 22,
     "lowStockThreshold": 5,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -240,7 +240,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 12,
     "lowStockThreshold": 3,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -248,7 +248,7 @@ export const products: Product[] = [
     "slug": "kz-as16-pro-x",
     "name": "KZ AS16 Pro X",
     "category": "IEMs",
-    "price": 2890,
+    "price": 2950,
     "image": "AX",
     "imageUrl": "/products/kz-as16-pro-x.png",
     "imageUrls": [
@@ -266,7 +266,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 5,
     "lowStockThreshold": 2,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -274,7 +274,7 @@ export const products: Product[] = [
     "slug": "kz-az09-wireless",
     "name": "KZ AZ09 Wireless Earhooks",
     "category": "Wireless",
-    "price": 1250,
+    "price": 890,
     "image": "AZ",
     "imageUrl": "/products/kz-az09-wireless.png",
     "imageUrls": [
@@ -292,8 +292,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 20,
     "lowStockThreshold": 4,
-    "isActive": true,
-    "featured": true
+    "isActive": false,
+    "featured": false
   },
   {
     "id": "kz-carol-pro",
@@ -318,7 +318,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 15,
     "lowStockThreshold": 3,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -344,7 +344,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 17,
     "lowStockThreshold": 4,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -369,7 +369,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 9,
     "lowStockThreshold": 2,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -395,7 +395,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 11,
     "lowStockThreshold": 3,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -421,7 +421,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 14,
     "lowStockThreshold": 3,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -550,8 +550,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 28,
     "lowStockThreshold": 6,
-    "isActive": true,
-    "featured": true
+    "isActive": false,
+    "featured": false
   },
   {
     "id": "kiwi-ears-s-link",
@@ -804,8 +804,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 35,
     "lowStockThreshold": 8,
-    "isActive": true,
-    "featured": true
+    "isActive": false,
+    "featured": false
   },
   {
     "id": "spinfit-neo",
@@ -1059,7 +1059,7 @@ export const products: Product[] = [
     "stockQuantity": 30,
     "lowStockThreshold": 6,
     "isActive": false,
-    "featured": true
+    "featured": false
   },
   {
     "id": "linsoul-lc02-case",
@@ -1084,7 +1084,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 18,
     "lowStockThreshold": 4,
-    "isActive": true,
+    "isActive": false,
     "featured": false
   },
   {
@@ -1292,7 +1292,7 @@ export const products: Product[] = [
     "slug": "kz-am02-dac",
     "name": "KZ AM02 Type-C DAC Amp",
     "category": "DACs",
-    "price": 980,
+    "price": 950,
     "image": "AM",
     "imageUrl": "/products/kz-am02-dac.png",
     "imageUrls": [
@@ -1310,8 +1310,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 18,
     "lowStockThreshold": 4,
-    "isActive": true,
-    "featured": true
+    "isActive": false,
+    "featured": false
   },
   {
     "id": "kiwi-ears-allegro-bal",
