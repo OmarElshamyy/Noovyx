@@ -225,6 +225,11 @@ export function Storefront() {
       }
     };
     const handleWindowFocus = () => {
+      loadStorefrontConfig()
+        .then((loadedCfg) => {
+          if (isMounted) setCmsConfig(loadedCfg);
+        })
+        .catch(() => {});
       getPublicProducts()
         .then((fresh) => {
           if (isMounted) setCatalogProducts(fresh.filter((p) => p.isActive === true));

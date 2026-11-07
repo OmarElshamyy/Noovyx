@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const STATE_FILE_PATH = path.join(process.cwd(), "local-catalog-state.json");
 const PRODUCTS_TS_PATH = path.join(process.cwd(), "products.ts");
+const STOREFRONT_CONFIG_TS_PATH = path.join(process.cwd(), "storefrontConfig.ts");
 
 interface LocalServerState {
   catalogState?: {
@@ -15,6 +16,7 @@ interface LocalServerState {
     updatedAt: number;
   };
   cmsConfig?: Record<string, unknown>;
+  cmsUpdatedAt?: number;
   updatedAt?: number;
 }
 
@@ -32,6 +34,7 @@ function readServerState(): LocalServerState {
 
 function writeProductsTsFile(productsList: Product[]) {
   try {
+    const cleanList = productsList.filter((p) => p.id !== "__noovyx_cms_config__");
     const fileContent = `import type { Product, ProductCategory } from "./types";
 
 export const PRODUCT_CATEGORIES: ProductCategory[] = [
@@ -43,7 +46,7 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   "DACs",
 ];
 
-export const products: Product[] = ${JSON.stringify(productsList, null, 2)};
+export const products: Product[] = ${JSON.stringify(cleanList, null, 2)};
 
 export const featuredProducts = products.filter((product) => product.featured);
 
@@ -57,7 +60,25 @@ export function formatCurrency(value: number) {
 `;
     fs.writeFileSync(PRODUCTS_TS_PATH, fileContent, "utf8");
   } catch {
-    // Ignore on read-only serverless environments (like Vercel runtime)
+    // Ignore on read-only serverless environments
+  }
+}
+
+function writeStorefrontConfigTsDefault(cmsConfig: Record<string, unknown>) {
+  try {
+    if (!fs.existsSync(STOREFRONT_CONFIG_TS_PATH)) return;
+    const src = fs.readFileSync(STOREFRONT_CONFIG_TS_PATH, "utf8");
+    const startMarker = "export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = ";
+    const endMarker = "export const STORAGE_KEY = ";
+    const startIdx = src.indexOf(startMarker);
+    const endIdx = src.indexOf(endMarker);
+    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return;
+
+    const newDefaultBlock = `${startMarker}${JSON.stringify(cmsConfig, null, 2)};\n\n`;
+    const updatedSrc = src.slice(0, startIdx) + newDefaultBlock + src.slice(endIdx);
+    fs.writeFileSync(STOREFRONT_CONFIG_TS_PATH, updatedSrc, "utf8");
+  } catch {
+    // Ignore on read-only serverless environments
   }
 }
 
@@ -79,9 +100,10 @@ export async function POST(req: NextRequest) {
     };
 
     const current = readServerState();
+    const now = Date.now();
     const nextState: LocalServerState = {
       ...current,
-      updatedAt: Date.now(),
+      updatedAt: now,
     };
 
     if (body.catalogState && typeof body.catalogState === "object") {
@@ -90,6 +112,8 @@ export async function POST(req: NextRequest) {
 
     if (body.cmsConfig && typeof body.cmsConfig === "object") {
       nextState.cmsConfig = body.cmsConfig;
+      nextState.cmsUpdatedAt = now;
+      writeStorefrontConfigTsDefault(body.cmsConfig);
     }
 
     try {

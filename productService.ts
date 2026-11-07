@@ -222,7 +222,8 @@ function buildMergedCatalog(
     map.delete(delId);
   }
 
-  return Array.from(map.values());
+  map.delete("__noovyx_cms_config__");
+  return Array.from(map.values()).filter((p) => p.id !== "__noovyx_cms_config__" && p.slug !== "__noovyx_cms_config__");
 }
 
 async function fetchLocalServerCatalogState(): Promise<CatalogState> {

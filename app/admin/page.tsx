@@ -358,11 +358,14 @@ export default function AdminPage() {
 
   const hasAdminAccess = adminState === "claim" || adminState === "document";
 
-  // Load full Homepage CMS configuration only after admin authorization
+  // Load full Homepage CMS configuration only after admin authorization, and sync to server/Firestore
   useEffect(() => {
     if (!user || !hasAdminAccess) return;
     loadStorefrontConfig()
-      .then((loaded) => setCmsConfig(loaded))
+      .then((loaded) => {
+        setCmsConfig(loaded);
+        void saveStorefrontConfig(loaded);
+      })
       .catch(() => {});
   }, [hasAdminAccess, user]);
 
@@ -511,6 +514,17 @@ export default function AdminPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bulkFileRef = useRef<HTMLInputElement>(null);
+  const cmsAutoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleCmsConfigChange(nextConfig: StorefrontConfig) {
+    setCmsConfig(nextConfig);
+    if (cmsAutoSaveTimerRef.current) {
+      clearTimeout(cmsAutoSaveTimerRef.current);
+    }
+    cmsAutoSaveTimerRef.current = setTimeout(() => {
+      void saveStorefrontConfig(nextConfig);
+    }, 350);
+  }
 
   const showToast = useCallback((type: "success" | "error", text: string) => {
     setToast({ type, text });
@@ -2221,8 +2235,8 @@ export default function AdminPage() {
       {activeTab === "homepage" && (
         <AdminHomepageEditor
           config={cmsConfig}
-          onChange={setCmsConfig}
-          onSave={() => handleSaveCmsConfig(cmsConfig)}
+          onChange={handleCmsConfigChange}
+          onSave={(cfg) => handleSaveCmsConfig(cfg || cmsConfig)}
           isSaving={isSavingCms}
           products={products}
           onToggleProductFeatured={toggleFeatured}

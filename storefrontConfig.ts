@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import type { MenuTab } from "./app/components/SiteHeader";
 
@@ -743,10 +743,18 @@ export function getCachedStorefrontConfig(): StorefrontConfig {
   }
 }
 
+export const CMS_FIRESTORE_PRODUCT_DOC_ID = "__noovyx_cms_config__";
+
 export async function loadStorefrontConfig(): Promise<StorefrontConfig> {
   const cached = getCachedStorefrontConfig();
+  let hasLocalSaved = false;
+  if (typeof window !== "undefined") {
+    try {
+      hasLocalSaved = Boolean(localStorage.getItem(STORAGE_KEY));
+    } catch {}
+  }
 
-  // 1. Try local server state (/api/local-catalog) so Private/Incognito windows get CMS changes too
+  // 1. Try local server state (/api/local-catalog) so Private/Incognito windows get CMS section changes
   if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/local-catalog", { cache: "no-store" });
@@ -761,12 +769,34 @@ export async function loadStorefrontConfig(): Promise<StorefrontConfig> {
         }
       }
     } catch {
-      // Ignore and try fallback
+      // Ignore and try Firestore fallback
     }
   }
 
   if (!db) return cached;
 
+  // 2. Read from Firestore products/__noovyx_cms_config__ (publicly readable by all Private/Incognito windows)
+  try {
+    const cmsProductSnap = await getDoc(doc(db, "products", CMS_FIRESTORE_PRODUCT_DOC_ID));
+    if (cmsProductSnap.exists()) {
+      const pData = cmsProductSnap.data();
+      const rawJson = typeof pData.imageUrl === "string" ? pData.imageUrl : "";
+      if (rawJson.startsWith("{")) {
+        const parsed = JSON.parse(rawJson) as Record<string, unknown>;
+        const merged = mergeStorefrontConfig(parsed);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+          } catch {}
+        }
+        return merged;
+      }
+    }
+  } catch {
+    // Ignore and try settings/storefront fallback
+  }
+
+  // 3. Fallback to settings/storefront if accessible
   try {
     const snap = await getDoc(doc(db, "settings", "storefront"));
     if (snap.exists()) {
@@ -782,6 +812,12 @@ export async function loadStorefrontConfig(): Promise<StorefrontConfig> {
   } catch {
     // Fallback to cached or default
   }
+
+  // If the admin's open browser already has saved CMS settings in localStorage, push them to the server automatically
+  if (hasLocalSaved && typeof window !== "undefined") {
+    void saveStorefrontConfig(cached);
+  }
+
   return cached;
 }
 
@@ -789,7 +825,14 @@ export async function saveStorefrontConfig(config: StorefrontConfig): Promise<vo
   const sanitized = mergeStorefrontConfig(config as unknown as Record<string, unknown>);
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+      const serialized = JSON.stringify(sanitized);
+      localStorage.setItem(STORAGE_KEY, serialized);
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: STORAGE_KEY,
+          newValue: serialized,
+        }),
+      );
     } catch {}
     try {
       await fetch("/api/local-catalog", {
@@ -801,8 +844,32 @@ export async function saveStorefrontConfig(config: StorefrontConfig): Promise<vo
   }
 
   if (db) {
-    try {
-      await setDoc(
+    const serializedCms = JSON.stringify(sanitized).slice(0, 740000);
+    await Promise.allSettled([
+      // Save inside products/__noovyx_cms_config__ so public Private/Incognito windows can always read it
+      setDoc(
+        doc(db, "products", CMS_FIRESTORE_PRODUCT_DOC_ID),
+        {
+          slug: CMS_FIRESTORE_PRODUCT_DOC_ID,
+          name: "Noovyx Storefront CMS Config",
+          category: "IEMs",
+          price: 0,
+          image: "NX",
+          imageUrl: serializedCms,
+          imageUrls: [],
+          description: "Storefront CMS Configuration Document",
+          specs: [],
+          inStock: false,
+          stockQuantity: 0,
+          lowStockThreshold: 0,
+          isActive: true,
+          featured: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+      setDoc(
         doc(db, "settings", "storefront"),
         {
           cmsConfig: sanitized,
@@ -815,9 +882,7 @@ export async function saveStorefrontConfig(config: StorefrontConfig): Promise<vo
           updatedAt: new Date().toISOString(),
         },
         { merge: true },
-      );
-    } catch {
-      // Saved locally via /api/local-catalog & localStorage
-    }
+      ),
+    ]);
   }
 }
