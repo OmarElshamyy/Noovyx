@@ -34,7 +34,9 @@ function readServerState(): LocalServerState {
 
 function writeProductsTsFile(productsList: Product[]) {
   try {
-    const cleanList = productsList.filter((p) => p.id !== "__noovyx_cms_config__");
+    const cleanList = productsList.filter(
+      (p) => p.id !== "noovyx-cms-config-v2" && p.id !== "__noovyx_cms_config__",
+    );
     const fileContent = `import type { Product, ProductCategory } from "./types";
 
 export const PRODUCT_CATEGORIES: ProductCategory[] = [

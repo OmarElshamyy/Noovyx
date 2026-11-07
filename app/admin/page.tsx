@@ -517,13 +517,37 @@ export default function AdminPage() {
   const cmsAutoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function handleCmsConfigChange(nextConfig: StorefrontConfig) {
+    const isVisibilityToggle =
+      cmsConfig.announcement.enabled !== nextConfig.announcement.enabled ||
+      cmsConfig.hero.enabled !== nextConfig.hero.enabled ||
+      cmsConfig.bestSellers.enabled !== nextConfig.bestSellers.enabled ||
+      cmsConfig.soundFinder.enabled !== nextConfig.soundFinder.enabled ||
+      cmsConfig.newReleases.enabled !== nextConfig.newReleases.enabled ||
+      cmsConfig.catalogSection.enabled !== nextConfig.catalogSection.enabled ||
+      cmsConfig.reviews.enabled !== nextConfig.reviews.enabled ||
+      cmsConfig.trust.enabled !== nextConfig.trust.enabled ||
+      cmsConfig.blog.enabled !== nextConfig.blog.enabled ||
+      cmsConfig.supportStrip.enabled !== nextConfig.supportStrip.enabled ||
+      cmsConfig.finalCta.enabled !== nextConfig.finalCta.enabled;
+
     setCmsConfig(nextConfig);
     if (cmsAutoSaveTimerRef.current) {
       clearTimeout(cmsAutoSaveTimerRef.current);
     }
-    cmsAutoSaveTimerRef.current = setTimeout(() => {
-      void saveStorefrontConfig(nextConfig);
-    }, 350);
+
+    if (isVisibilityToggle) {
+      saveStorefrontConfig(nextConfig)
+        .then(() => {
+          showToast("success", "Section visibility saved & published to Live Store!");
+        })
+        .catch((err) => {
+          showToast("error", err instanceof Error ? err.message : "Failed to sync section visibility.");
+        });
+    } else {
+      cmsAutoSaveTimerRef.current = setTimeout(() => {
+        void saveStorefrontConfig(nextConfig);
+      }, 300);
+    }
   }
 
   const showToast = useCallback((type: "success" | "error", text: string) => {

@@ -222,8 +222,15 @@ function buildMergedCatalog(
     map.delete(delId);
   }
 
+  map.delete("noovyx-cms-config-v2");
   map.delete("__noovyx_cms_config__");
-  return Array.from(map.values()).filter((p) => p.id !== "__noovyx_cms_config__" && p.slug !== "__noovyx_cms_config__");
+  return Array.from(map.values()).filter(
+    (p) =>
+      p.id !== "noovyx-cms-config-v2" &&
+      p.slug !== "noovyx-cms-config-v2" &&
+      p.id !== "__noovyx_cms_config__" &&
+      p.slug !== "__noovyx_cms_config__",
+  );
 }
 
 async function fetchLocalServerCatalogState(): Promise<CatalogState> {
@@ -266,9 +273,9 @@ async function fetchAllFirestoreProducts(): Promise<Product[]> {
     const allSnap = await getDocs(
       query(collection(db, PRODUCT_COLLECTION), limit(MAX_PRODUCT_QUERY_LIMIT)),
     );
-    return allSnap.docs.map((productDoc) =>
-      productFromData(productDoc.id, productDoc.data()),
-    );
+    return allSnap.docs
+      .filter((d) => d.id !== "noovyx-cms-config-v2" && d.id !== "__noovyx_cms_config__")
+      .map((productDoc) => productFromData(productDoc.id, productDoc.data()));
   } catch {
     try {
       const activeSnap = await getDocs(
@@ -278,9 +285,9 @@ async function fetchAllFirestoreProducts(): Promise<Product[]> {
           limit(MAX_PRODUCT_QUERY_LIMIT),
         ),
       );
-      return activeSnap.docs.map((productDoc) =>
-        productFromData(productDoc.id, productDoc.data()),
-      );
+      return activeSnap.docs
+        .filter((d) => d.id !== "noovyx-cms-config-v2" && d.id !== "__noovyx_cms_config__")
+        .map((productDoc) => productFromData(productDoc.id, productDoc.data()));
     } catch {
       return [];
     }
@@ -388,19 +395,24 @@ export async function saveProduct(product: Product): Promise<void> {
   await persistToLocalServer(nextState);
 
   if (db) {
+    const firestoreDb = db;
     await Promise.allSettled([
-      setDoc(
-        doc(db, PRODUCT_COLLECTION, productId),
-        {
+      (async () => {
+        const ref = doc(firestoreDb, PRODUCT_COLLECTION, productId);
+        const payload = {
           ...productToFirestore({
             ...product,
             id: productId,
             slug: product.slug || productId,
           }),
           createdAt: serverTimestamp(),
-        },
-        { merge: true },
-      ),
+        };
+        try {
+          await setDoc(ref, payload);
+        } catch {
+          await setDoc(ref, { ...payload, id: productId }, { merge: true });
+        }
+      })(),
       setDoc(
         doc(db, "settings", STOREFRONT_SETTINGS_DOC),
         {
@@ -446,18 +458,22 @@ export async function saveProductsBatch(productsList: Product[]): Promise<void> 
       ...productsList.map((prod) => {
         const pid = (prod.id || prod.slug).trim();
         if (!pid) return Promise.resolve();
-        return setDoc(
-          doc(firestoreDb, PRODUCT_COLLECTION, pid),
-          {
+        return (async () => {
+          const ref = doc(firestoreDb, PRODUCT_COLLECTION, pid);
+          const payload = {
             ...productToFirestore({
               ...prod,
               id: pid,
               slug: prod.slug || pid,
             }),
             createdAt: serverTimestamp(),
-          },
-          { merge: true },
-        );
+          };
+          try {
+            await setDoc(ref, payload);
+          } catch {
+            await setDoc(ref, { ...payload, id: pid }, { merge: true });
+          }
+        })();
       }),
       setDoc(
         doc(db, "settings", STOREFRONT_SETTINGS_DOC),
