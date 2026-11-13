@@ -794,6 +794,8 @@ function ProductCard({
   const hoverImage = images[1] ?? "";
   const stockAlert = getStockAlert(product);
 
+  const cardRef = useRevealOnScroll<HTMLElement>();
+
   const openProduct = () => onView(product);
   const openProductFromKeyboard = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -802,14 +804,31 @@ function ProductCard({
     }
   };
 
-  const originalPrice = Math.round(product.price * 1.25);
+  // Subtle pointer parallax: the product image drifts a few pixels toward the cursor.
+  // Writes CSS variables directly so the card never re-renders while the mouse moves.
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.pointerType !== "mouse") return;
+    const el = event.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    el.style.setProperty("--kz-mx", x.toFixed(3));
+    el.style.setProperty("--kz-my", y.toFixed(3));
+  };
+  const handlePointerLeave = (event: React.PointerEvent<HTMLElement>) => {
+    event.currentTarget.style.setProperty("--kz-mx", "0");
+    event.currentTarget.style.setProperty("--kz-my", "0");
+  };
 
   return (
     <article
+      ref={cardRef}
       aria-label={`View details for ${product.name}`}
       className={`kz-product-card ${isRecentlyAdded ? "added" : ""}`}
       onClick={openProduct}
       onKeyDown={openProductFromKeyboard}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
       role="button"
       tabIndex={0}
     >
@@ -893,12 +912,61 @@ function ProductCard({
             }}
             disabled={!product.inStock}
           >
-            {isRecentlyAdded ? "Added" : product.inStock ? "Add to cart" : "Out of stock"}
+            {isRecentlyAdded ? (
+              <span className="kz-card-added-label">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Added
+              </span>
+            ) : product.inStock ? (
+              "Add to cart"
+            ) : (
+              "Out of stock"
+            )}
           </button>
         </div>
       </div>
     </article>
   );
+}
+
+/**
+ * Adds `kz-reveal` on mount and `is-revealed` once the element scrolls into view,
+ * so product cards ease up into place. Cards stay fully visible without JS,
+ * and users with prefers-reduced-motion get them immediately.
+ */
+function useRevealOnScroll<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion || typeof IntersectionObserver === "undefined") {
+      el.classList.add("is-revealed");
+      return;
+    }
+
+    el.classList.add("kz-reveal");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            el.classList.add("is-revealed");
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "0px 0px -6% 0px", threshold: 0.08 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return ref;
 }
 
 function getStockAlert(product: Product) {
@@ -957,7 +1025,7 @@ function ProductVisualFrame({
     <div className={large ? "product-visual large" : "product-visual"}>
       {imagePath ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img alt={product.name} src={imagePath} />
+        <img key={imagePath} alt={product.name} src={imagePath} />
       ) : (
         <span>{product.image}</span>
       )}
