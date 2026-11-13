@@ -1548,7 +1548,7 @@ function CheckoutExperience({
           <div className="checkout-header-branding">
             <span className="brand-mark">NX</span>
             <div>
-              <p className="checkout-kicker">NOOVYX // CASH ON DELIVERY</p>
+              <p className="checkout-kicker">Noovyx · Cash on Delivery</p>
               <h2>Order Checkout</h2>
             </div>
           </div>
@@ -1582,8 +1582,14 @@ function CheckoutExperience({
                 aria-expanded={isMobileSummaryOpen}
               >
                 <div className="summary-toggle-info">
-                  <span className="summary-cart-icon">🛒</span>
-                  <span>{isMobileSummaryOpen ? "Hide order loadout" : "Show order loadout"}</span>
+                  <span className="summary-cart-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <path d="M16 10a4 4 0 0 1-8 0" />
+                    </svg>
+                  </span>
+                  <span>{isMobileSummaryOpen ? "Hide order summary" : "Show order summary"}</span>
                   <span className="summary-items-count">({cartCount} {cartCount === 1 ? "item" : "items"})</span>
                   <span className="summary-arrow">{isMobileSummaryOpen ? "▲" : "▼"}</span>
                 </div>
@@ -1626,11 +1632,11 @@ function CheckoutExperience({
                 {/* 01. Customer Information */}
                 <fieldset className="checkout-fieldset">
                   <legend className="checkout-fieldset-legend">
-                    <span className="legend-tag">01 //</span>
+                    <span className="legend-tag">01</span>
                     <span className="legend-title">Customer Information</span>
                   </legend>
                   <p className="fieldset-desc">
-                    Enter your contact details so our command team can verify your loadout before dispatch.
+                    Enter your contact details so our team can confirm your order before dispatch.
                   </p>
 
                   <div className="form-field-group">
@@ -1684,7 +1690,7 @@ function CheckoutExperience({
                 {/* 02. Delivery Information */}
                 <fieldset className="checkout-fieldset">
                   <legend className="checkout-fieldset-legend">
-                    <span className="legend-tag">02 //</span>
+                    <span className="legend-tag">02</span>
                     <span className="legend-title">Delivery Information</span>
                   </legend>
                   <p className="fieldset-desc">
@@ -1745,7 +1751,7 @@ function CheckoutExperience({
                 {/* 03. Optional Order Notes */}
                 <fieldset className="checkout-fieldset">
                   <legend className="checkout-fieldset-legend">
-                    <span className="legend-tag">03 //</span>
+                    <span className="legend-tag">03</span>
                     <span className="legend-title">Order Notes & Preferences (Optional)</span>
                   </legend>
                   <div className="form-field-group">
@@ -1767,12 +1773,17 @@ function CheckoutExperience({
                 {/* Order Process Notice & Trust Badge */}
                 <div className="checkout-guarantee-card">
                   <div className="guarantee-badge">
-                    <span className="guarantee-shield">🛡️</span>
+                    <span className="guarantee-shield" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="m9 12 2 2 4-4" />
+                      </svg>
+                    </span>
                     <div>
-                      <strong>CASH ON DELIVERY // VERIFIED INQUIRY</strong>
+                      <strong>Cash on Delivery · Verified Order</strong>
                       <p>
-                        Your order will be reviewed and confirmed with you before delivery and payment.
-                        No advance online payment required. Pay only after inspection.
+                        Your order is reviewed and confirmed with you before dispatch.
+                        No advance online payment required — pay only after inspecting your package.
                       </p>
                     </div>
                   </div>
@@ -1794,29 +1805,29 @@ function CheckoutExperience({
                     {submitState.status === "loading" ? (
                       <span className="btn-loading-content">
                         <span className="btn-spinner" aria-hidden="true" />
-                        CREATING ORDER REQUEST...
+                        Submitting order request...
                       </span>
                     ) : (
-                      "PLACE ORDER REQUEST"
+                      "Place Order Request"
                     )}
                   </button>
                   <p className="checkout-sub-disclaimer">
-                    Clicking &quot;Place Order Request&quot; notifies our operations team to verify physical stock and reserve your equipment.
+                    Clicking &quot;Place Order Request&quot; notifies our team to verify stock and reserve your items.
                   </p>
                 </div>
               </form>
             </section>
 
             {/* Right Column: Sticky Order Summary (Desktop) */}
-            <aside className="checkout-summary-column" aria-label="Order Loadout Summary">
+            <aside className="checkout-summary-column" aria-label="Order Summary">
               <div className="summary-sticky-wrap">
                 <div className="summary-card-header">
                   <div>
-                    <p className="summary-tag">CURRENT ARSENAL</p>
+                    <p className="summary-tag">Your Selection</p>
                     <h3>Order Summary</h3>
                   </div>
                   <span className="summary-count-badge">
-                    {cartCount} {cartCount === 1 ? "ITEM" : "ITEMS"}
+                    {cartCount} {cartCount === 1 ? "item" : "items"}
                   </span>
                 </div>
 
@@ -1830,16 +1841,31 @@ function CheckoutExperience({
 
                 <div className="summary-trust-bullets">
                   <div>
-                    <span className="bullet-icon">⚡</span>
-                    <span>100% Genuine KZ Acoustic Components</span>
+                    <span className="bullet-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
+                    </span>
+                    <span>100% Authentic Factory-Sealed Audio Gear</span>
                   </div>
                   <div>
-                    <span className="bullet-icon">📦</span>
-                    <span>Inspected & Tested Prior to Dispatch</span>
+                    <span className="bullet-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="1" y="3" width="15" height="13" />
+                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                        <circle cx="5.5" cy="18.5" r="2.5" />
+                        <circle cx="18.5" cy="18.5" r="2.5" />
+                      </svg>
+                    </span>
+                    <span>Inspected & Packed Before Dispatch</span>
                   </div>
                   <div>
-                    <span className="bullet-icon">💬</span>
-                    <span>Direct WhatsApp Support for Inquiries</span>
+                    <span className="bullet-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                      </svg>
+                    </span>
+                    <span>Direct WhatsApp Confirmation & Support</span>
                   </div>
                 </div>
               </div>
@@ -1958,17 +1984,17 @@ function OrderConfirmationView({
     <section className="order-confirmation-screen" aria-label="Order Confirmation">
       <div className="confirmation-badge-row">
         <div className="celebrate-icon-box">✓</div>
-        <p className="confirmation-tag">TRANSMISSION SECURED // REQUEST RECORDED</p>
+        <p className="confirmation-tag">Order Confirmed · Request Recorded</p>
         <h2>Order Request Received</h2>
         <p className="confirmation-lead">
-          Thank you, <strong>{order.customerName}</strong>! Your gear loadout request has been securely logged into our command center queue.
+          Thank you, <strong>{order.customerName}</strong>! Your order request has been logged and our team will contact you shortly.
         </p>
       </div>
 
       {/* Request ID Display */}
       <div className="request-id-card">
         <div className="request-id-details">
-          <span className="id-label">ORDER REQUEST ID</span>
+          <span className="id-label">Order Request ID</span>
           <code className="id-code">#{order.orderId}</code>
         </div>
         <button
@@ -1976,35 +2002,35 @@ function OrderConfirmationView({
           type="button"
           onClick={() => onCopyOrderId(order.orderId)}
         >
-          {copiedOrderId ? "✓ Copied!" : "Copy ID"}
+          {copiedOrderId ? "✓ Copied" : "Copy ID"}
         </button>
       </div>
 
       {/* 3-Step Next Steps Progression */}
       <div className="next-steps-container">
-        <h3 className="next-steps-heading">WHAT HAPPENS NEXT?</h3>
+        <h3 className="next-steps-heading">What happens next</h3>
         <div className="next-steps-grid">
           <div className="next-step-card">
             <span className="step-card-num">01</span>
-            <h4>Loadout Verification</h4>
-            <p>Our team physically inspects warehouse stock, driver units, and accessories for your selected models.</p>
+            <h4>Stock Verification</h4>
+            <p>Our team checks warehouse stock, driver units, and accessories for your selected models.</p>
           </div>
           <div className="next-step-card highlight">
             <span className="step-card-num">02</span>
             <h4>WhatsApp / Phone Confirmation</h4>
-            <p>We contact you at <strong>{order.contact}</strong> to confirm the delivery address and exact courier fee.</p>
+            <p>We contact you at <strong>{order.contact}</strong> to confirm the delivery address and courier fee.</p>
           </div>
           <div className="next-step-card">
             <span className="step-card-num">03</span>
             <h4>Doorstep Delivery & COD</h4>
-            <p>Your gear is dispatched in secure shockproof packaging. Inspect your items and pay cash upon arrival.</p>
+            <p>Your gear is dispatched in protective packaging. Inspect your items and pay cash upon arrival.</p>
           </div>
         </div>
       </div>
 
       {/* Summary of Submitted Order */}
       <div className="submitted-order-recap">
-        <h3 className="recap-heading">Submitted Loadout Summary</h3>
+        <h3 className="recap-heading">Submitted Order Summary</h3>
         <div className="recap-details-grid">
           <div className="recap-info-block">
             <span className="recap-label">Recipient</span>
@@ -2052,17 +2078,17 @@ function OrderConfirmationView({
           type="button"
           onClick={onContinueShopping}
         >
-          CONTINUE SHOPPING
+          Continue Shopping
         </button>
         <a
           className="secondary-link whatsapp-support-link"
           href={`https://wa.me/?text=${encodeURIComponent(
-            `Hi KZ Audio Store, I just submitted order request #${order.orderId} for ${order.items.map((i) => `${i.quantity}x ${i.product.name}`).join(", ")}. Please confirm my order.`
+            `Hi Noovyx, I just submitted order request #${order.orderId} for ${order.items.map((i) => `${i.quantity}x ${i.product.name}`).join(", ")}. Please confirm my order.`
           )}`}
           target="_blank"
           rel="noopener noreferrer"
         >
-          <span>💬 Chat on WhatsApp with Order ID</span>
+          <span>Chat on WhatsApp with Order ID →</span>
         </a>
       </div>
     </section>
@@ -2072,10 +2098,15 @@ function OrderConfirmationView({
 function EmptyCartView({ onClose }: { onClose: () => void }) {
   return (
     <div className="empty-checkout-view">
-      <div className="empty-cart-icon">🎧</div>
-      <h3>Your Arsenal is Empty</h3>
+      <div className="empty-cart-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+        </svg>
+      </div>
+      <h3>Your Cart is Empty</h3>
       <p>
-        Select from our battle-ready KZ in-ear monitors, cables, tips, and DAC adapters to assemble your audio loadout.
+        Explore our in-ear monitors, upgrade cables, ear tips, and portable DACs to start your order.
       </p>
       <button
         className="primary-button"
@@ -2088,7 +2119,7 @@ function EmptyCartView({ onClose }: { onClose: () => void }) {
           }
         }}
       >
-        BROWSE CATALOG
+        Browse Catalog
       </button>
     </div>
   );
