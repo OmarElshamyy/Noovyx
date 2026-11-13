@@ -193,7 +193,7 @@ export function SiteHeader({
                 {isSearchFocused && searchQuery.trim().length > 0 && (
                   <div className="kz-search-dropdown" role="region" aria-label="Search Suggestions">
                     <div className="kz-search-dropdown-header">
-                      <span>MATCHING PRODUCTS ({searchResults.length})</span>
+                      <span>Matching products ({searchResults.length})</span>
                       <button type="button" onClick={() => setIsSearchFocused(false)}>
                         Close
                       </button>
@@ -349,7 +349,7 @@ export function SiteHeader({
                 <span className="kz-brand-icon">{headerConfig.brandMark || "NX"}</span>
                 <div className="kz-brand-text">
                   <span className="kz-brand-title">{headerConfig.brandTitle || "NOOVYX"}</span>
-                  <span className="kz-drawer-subtitle">PRO AUDIO // EGYPT</span>
+                  <span className="kz-drawer-subtitle">{headerConfig.brandSub || "Pro Audio · Egypt"}</span>
                 </div>
               </div>
               <button
@@ -423,7 +423,7 @@ export function SiteHeader({
 
               {/* Shop by Category List */}
               <div className="kz-drawer-group">
-                <span className="kz-drawer-group-title">SHOP BY CATEGORY</span>
+                <span className="kz-drawer-group-title">Shop by category</span>
                 <ul className="kz-drawer-links">
                   {drawerCategories.map((item) => {
                     const isCurrent = activeTab === item.id;
@@ -461,23 +461,23 @@ export function SiteHeader({
 
               {/* Quick Store Sections */}
               <div className="kz-drawer-group">
-                <span className="kz-drawer-group-title">QUICK NAVIGATION</span>
+                <span className="kz-drawer-group-title">Quick navigation</span>
                 <div className="kz-drawer-quick-grid">
                   <button type="button" onClick={() => jumpToSection("bestsellers")}>
-                    <span>🔥</span>
-                    <span>Best Sellers</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span>Best sellers</span>
                   </button>
                   <button type="button" onClick={() => jumpToSection("sound-finder")}>
-                    <span>🎧</span>
-                    <span>Sound Finder</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+                    <span>Sound finder</span>
                   </button>
                   <button type="button" onClick={() => jumpToSection("new-releases")}>
-                    <span>✨</span>
-                    <span>New Releases</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>New releases</span>
                   </button>
                   <button type="button" onClick={() => jumpToSection("catalog")}>
-                    <span>📦</span>
-                    <span>Full Catalog</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <span>Full catalog</span>
                   </button>
                 </div>
               </div>
@@ -492,7 +492,7 @@ export function SiteHeader({
                     onOpenCart();
                   }}
                 >
-                  <span>🛒 View Shopping Cart</span>
+                  <span>View shopping cart</span>
                   <span className="kz-drawer-cart-badge">{cartCount} items</span>
                 </button>
                 <p className="kz-drawer-tagline">{headerConfig.drawerTagline}</p>
@@ -502,7 +502,7 @@ export function SiteHeader({
                   rel="noopener noreferrer"
                   className="kz-drawer-wa"
                 >
-                  <span>💬 WhatsApp Support & Order Help</span>
+                  <span>WhatsApp support & order help</span>
                   <span>→</span>
                 </a>
               </div>

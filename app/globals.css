@@ -8910,3 +8910,825 @@ a {
   font-weight: 800 !important;
   text-decoration: none !important;
 }
+
+/* ==========================================================================
+   UNSLOP 9-PASS REFINEMENT LAYER (by @heydamir unslop methodology)
+   ========================================================================== */
+
+:root {
+  /* Pass 2: Dark Ink Neutral Ramp + Single Refined Cyan Accent */
+  --bg-deepest: #07080d;
+  --bg: #0b0d14;
+  --card-surface: #11141c;
+  --raised-surface: #1a1e28;
+  --ink: #eef0f5;
+  --text-secondary: #a3a9b8;
+  --muted: #7a8296;
+  --line: rgba(238, 240, 245, 0.08);
+  --line-strong: rgba(238, 240, 245, 0.14);
+  --cyan: #22d3ee;
+  --cyan-subtle: rgba(34, 211, 238, 0.1);
+  --purple: #22d3ee;
+  --orange: #22d3ee;
+  --green: #4cc38a;
+  --danger: #e5484d;
+  --glow-cyan: none;
+  --glow-purple: none;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+}
+
+/* Pass 2: Quiet page background without radial neon color blobs */
+body {
+  background: var(--bg) !important;
+  color: var(--ink) !important;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Pass 5: Tabular figures across all numbers, prices, and badges */
+.kz-card-sale-price,
+.kz-card-original-price,
+.kz-matched-sale,
+.kz-search-result-price,
+.kz-cart-badge,
+.kz-drawer-cart-badge,
+.kz-drawer-cat-count,
+.kz-score-text strong,
+.support-strip span,
+.gallery-counter-badge,
+.pdm-price {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pass 1 & 2: Announcement Bar — quiet surface, hairline, no shouty weight */
+.announcement-bar {
+  background: var(--bg-deepest) !important;
+  color: var(--text-secondary) !important;
+  border-bottom: 1px solid var(--line) !important;
+  padding: 8px 16px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Pass 1, 2, 5, 7: Header & Brand Mark — flat mark, quiet hairlines, 400-500 weights */
+.kz-header-wrapper {
+  background: rgba(11, 13, 20, 0.92) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+.kz-header-main {
+  padding: 12px 0 !important;
+  border-bottom: none !important;
+}
+
+.kz-brand-icon,
+.site-footer .brand-mark {
+  width: 36px !important;
+  height: 36px !important;
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 8px !important;
+  color: var(--cyan) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.kz-brand-title {
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+  color: var(--ink) !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+}
+
+.kz-brand-sub,
+.kz-drawer-subtitle {
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: var(--muted) !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+}
+
+.kz-nav-link {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  transition: color 150ms var(--ease-out), background-color 150ms var(--ease-out) !important;
+}
+
+.kz-nav-link:hover {
+  color: var(--ink) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.kz-nav-link.active {
+  color: var(--ink) !important;
+  background: var(--raised-surface) !important;
+}
+
+.kz-search-bar {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 8px !important;
+  height: 36px !important;
+  padding: 0 12px !important;
+  gap: 8px !important;
+  box-shadow: none !important;
+  transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out) !important;
+}
+
+.kz-search-bar:focus-within {
+  background: var(--raised-surface) !important;
+  border-color: var(--cyan) !important;
+  box-shadow: none !important;
+}
+
+.kz-search-icon {
+  color: var(--muted) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.kz-search-input {
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  color: var(--ink) !important;
+}
+
+.kz-search-input::placeholder {
+  color: var(--muted) !important;
+}
+
+.kz-action-btn {
+  height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--ink) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out) !important;
+}
+
+.kz-action-btn:hover {
+  background: var(--raised-surface) !important;
+  border-color: rgba(238, 240, 245, 0.22) !important;
+}
+
+.kz-cart-badge {
+  background: var(--cyan) !important;
+  color: var(--bg-deepest) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+/* Pass 2, 5, 6, 8, 9: Hero Section — quiet chrome, crisp hardware visual, no neon blobs or spinning rings */
+.kz-hero-slideshow {
+  background: var(--bg) !important;
+  border-bottom: 1px solid var(--line) !important;
+  padding: clamp(48px, 6vw, 80px) 0 !important;
+}
+
+.kz-hero-bg-grid,
+.kz-hero-ambient-glow,
+.kz-hero-glow-disc,
+.kz-hero-halo-ring {
+  display: none !important;
+  animation: none !important;
+}
+
+.kz-hero-badge {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+
+.kz-badge-dot {
+  width: 6px !important;
+  height: 6px !important;
+  background: var(--cyan) !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.kz-hero-tagline {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: var(--cyan) !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  margin: 0 !important;
+}
+
+.kz-hero-title {
+  font-size: clamp(2.25rem, 4.5vw, 3.75rem) !important;
+  font-weight: 500 !important;
+  color: var(--ink) !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.06 !important;
+  text-shadow: none !important;
+  text-transform: none !important;
+}
+
+.kz-hero-desc {
+  font-size: 1.0625rem !important;
+  font-weight: 400 !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.65 !important;
+  max-width: 36rem !important;
+}
+
+/* Signature Detail: Monospace technical spec pills */
+.kz-hero-pill,
+.kz-style-tag {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: var(--text-secondary) !important;
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  letter-spacing: 0 !important;
+}
+
+.kz-btn-primary,
+.primary-button {
+  height: 44px !important;
+  padding: 0 20px !important;
+  border-radius: 8px !important;
+  background: var(--ink) !important;
+  color: var(--bg-deepest) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: background-color 150ms var(--ease-out), transform 150ms var(--ease-out) !important;
+}
+
+.kz-btn-primary:hover,
+.primary-button:hover {
+  background: var(--cyan) !important;
+  color: var(--bg-deepest) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.kz-btn-primary:active,
+.primary-button:active {
+  transform: scale(0.98) !important;
+}
+
+.kz-btn-secondary,
+.ghost-button {
+  height: 44px !important;
+  padding: 0 20px !important;
+  border-radius: 8px !important;
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--ink) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+  transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out) !important;
+}
+
+.kz-btn-secondary:hover,
+.ghost-button:hover {
+  background: var(--raised-surface) !important;
+  border-color: rgba(238, 240, 245, 0.22) !important;
+}
+
+.kz-hero-trust-bar {
+  font-size: 0.8125rem !important;
+  color: var(--muted) !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+.kz-hero-image-wrap {
+  background: radial-gradient(circle at 50% 50%, rgba(26, 30, 40, 0.85) 0%, rgba(17, 20, 28, 0.35) 55%, transparent 75%) !important;
+  border-radius: 16px !important;
+}
+
+.kz-hero-floating-tag {
+  background: rgba(17, 20, 28, 0.92) !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+.kz-hero-floating-tag.bottom-right {
+  border-color: var(--line-strong) !important;
+  color: var(--text-secondary) !important;
+}
+
+.kz-hero-dot.active {
+  background: var(--cyan) !important;
+  box-shadow: none !important;
+}
+
+/* Pass 1, 4, 5: Section Headers — sentence case, 400-500 weight, clean hierarchy */
+.section,
+.trust-section,
+.blog-teaser,
+.recently-viewed {
+  padding: 64px 0 !important;
+  background: var(--bg) !important;
+}
+
+.trust-section,
+.blog-teaser,
+.recently-viewed {
+  padding-left: clamp(16px, 3vw, 32px) !important;
+  padding-right: clamp(16px, 3vw, 32px) !important;
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+.kz-section-kicker,
+.category-label,
+.section-heading p {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: var(--cyan) !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  margin-bottom: 8px !important;
+}
+
+.kz-section-title,
+.section-heading h2,
+.final-cta h2 {
+  font-size: clamp(1.75rem, 2.75vw, 2.25rem) !important;
+  font-weight: 500 !important;
+  color: var(--ink) !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.15 !important;
+}
+
+.kz-section-subtitle,
+.section-sub {
+  font-size: 0.9375rem !important;
+  font-weight: 400 !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.6 !important;
+  margin-top: 8px !important;
+}
+
+.kz-section-action-link {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  transition: color 150ms var(--ease-out) !important;
+}
+
+.kz-section-action-link:hover {
+  color: var(--ink) !important;
+  gap: 8px !important;
+}
+
+/* Pass 1, 2, 5, 7, 9: Product Cards — nested radius 12px -> 8px, hairline borders, signature spec line */
+.kz-products-grid {
+  gap: 20px !important;
+}
+
+.kz-product-card,
+.kz-matched-product-card {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  box-shadow: none !important;
+  transition: border-color 150ms var(--ease-out), background-color 150ms var(--ease-out), transform 150ms var(--ease-out) !important;
+}
+
+.kz-product-card:hover,
+.kz-matched-product-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(238, 240, 245, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28) !important;
+}
+
+.kz-card-img-frame,
+.kz-matched-img-wrap {
+  background: var(--bg-deepest) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(238, 240, 245, 0.05) !important;
+}
+
+.kz-card-badge,
+.kz-matched-badge {
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+
+.kz-card-badge.sale,
+.kz-matched-badge {
+  background: rgba(17, 20, 28, 0.9) !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--ink) !important;
+}
+
+.kz-card-badge.low {
+  background: rgba(245, 158, 11, 0.14) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  color: #fbbf24 !important;
+}
+
+.kz-card-badge.hot {
+  background: rgba(229, 72, 77, 0.14) !important;
+  border: 1px solid rgba(229, 72, 77, 0.35) !important;
+  color: #f87171 !important;
+}
+
+.kz-card-body,
+.kz-matched-body {
+  padding: 12px 4px 4px !important;
+  gap: 6px !important;
+}
+
+.kz-card-meta-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kz-card-category,
+.kz-matched-cat,
+.kz-search-result-cat {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: var(--muted) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.kz-card-stock-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+
+.kz-card-stock-dot::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.kz-card-stock-dot.out::before {
+  background: var(--danger);
+}
+
+.kz-card-title,
+.kz-matched-title {
+  font-size: 0.9375rem !important;
+  font-weight: 500 !important;
+  color: var(--ink) !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+}
+
+.kz-card-spec-line {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kz-card-price-row,
+.kz-matched-prices {
+  padding-top: 6px !important;
+}
+
+.kz-card-sale-price,
+.kz-matched-sale {
+  font-family: var(--font-mono) !important;
+  font-size: 1.0625rem !important;
+  font-weight: 500 !important;
+  color: var(--ink) !important;
+}
+
+.kz-card-details-btn,
+.kz-matched-btn-view {
+  height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--text-secondary) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out), background-color 150ms var(--ease-out) !important;
+}
+
+.kz-card-details-btn:hover,
+.kz-matched-btn-view:hover {
+  background: var(--raised-surface) !important;
+  color: var(--ink) !important;
+}
+
+.kz-card-cart-btn,
+.kz-matched-btn-cart {
+  height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  background: var(--raised-surface) !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--ink) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), border-color 150ms var(--ease-out) !important;
+}
+
+.kz-card-cart-btn:hover,
+.kz-matched-btn-cart:hover {
+  background: var(--cyan) !important;
+  border-color: var(--cyan) !important;
+  color: var(--bg-deepest) !important;
+}
+
+/* Sound Style Finder */
+.kz-sound-finder-section {
+  background: var(--bg-deepest) !important;
+  border-top: 1px solid var(--line) !important;
+  border-bottom: 1px solid var(--line) !important;
+  padding: 64px 0 !important;
+}
+
+.kz-style-card-3col {
+  border-radius: 12px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+  transition: border-color 150ms var(--ease-out), transform 150ms var(--ease-out) !important;
+}
+
+.kz-style-card-3col.active {
+  border-color: var(--cyan) !important;
+  box-shadow: none !important;
+}
+
+.kz-style-card-tag,
+.kz-style-banner-badge {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  color: var(--cyan) !important;
+}
+
+.kz-style-card-title {
+  font-size: 1.125rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.kz-sound-style-banner {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  padding: 24px !important;
+}
+
+.kz-style-banner-info h3 {
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+/* Catalog Filter Toolbar */
+.catalog-toolbar {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+}
+
+.filters button {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 8px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+  transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out), border-color 150ms var(--ease-out) !important;
+}
+
+.filters button:hover {
+  color: var(--ink) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.filters button.active {
+  background: var(--raised-surface) !important;
+  border-color: var(--line-strong) !important;
+  color: var(--ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.catalog-search-inline,
+.catalog-sort-select {
+  height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  background: var(--bg-deepest) !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--ink) !important;
+  font-size: 0.8125rem !important;
+  box-shadow: none !important;
+}
+
+.catalog-search-inline:focus,
+.catalog-sort-select:focus {
+  border-color: var(--cyan) !important;
+  box-shadow: none !important;
+}
+
+/* Reviews, Trust, Blog, Support Strip, Final CTA, Footer */
+.kz-reviews-section {
+  background: var(--bg) !important;
+  border-top: 1px solid var(--line) !important;
+  padding: 64px 0 !important;
+}
+
+.kz-review-card,
+.trust-card,
+.blog-card {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  box-shadow: none !important;
+  transition: border-color 150ms var(--ease-out) !important;
+}
+
+.kz-review-card.highlighted,
+.kz-review-card:hover,
+.trust-card:hover,
+.blog-card:hover {
+  border-color: var(--line-strong) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.kz-review-headline,
+.trust-card h3,
+.blog-card h3,
+.support-strip h3 {
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  color: var(--ink) !important;
+  line-height: 1.4 !important;
+}
+
+.kz-review-text,
+.trust-card p,
+.blog-card p,
+.support-strip p {
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+.blog-card-tag,
+.kz-verified-pill {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.support-strip {
+  background: var(--bg-deepest) !important;
+  border-top: 1px solid var(--line) !important;
+  border-bottom: 1px solid var(--line) !important;
+  padding: 48px clamp(16px, 3vw, 32px) !important;
+}
+
+.support-strip span {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  color: var(--cyan) !important;
+}
+
+.final-cta {
+  background: var(--bg) !important;
+  padding: 64px clamp(16px, 3vw, 32px) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+.site-footer {
+  background: var(--bg-deepest) !important;
+  border-top: 1px solid var(--line) !important;
+}
+
+/* Mobile Navigation Drawer */
+.kz-drawer-panel {
+  background: var(--bg) !important;
+  border-right: 1px solid var(--line-strong) !important;
+}
+
+.kz-drawer-header {
+  background: var(--bg-deepest) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+.kz-drawer-group-title {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: var(--muted) !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+}
+
+.kz-drawer-cat-btn {
+  background: var(--card-surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  padding: 8px 12px !important;
+  box-shadow: none !important;
+  transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out) !important;
+}
+
+.kz-drawer-cat-btn:hover,
+.kz-drawer-cat-btn.active {
+  background: var(--raised-surface) !important;
+  border-color: var(--line-strong) !important;
+  box-shadow: none !important;
+}
+
+.kz-drawer-cat-label {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+.kz-drawer-cat-count {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: var(--muted) !important;
+}

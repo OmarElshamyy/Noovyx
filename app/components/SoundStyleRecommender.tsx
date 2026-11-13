@@ -88,7 +88,7 @@ export function SoundStyleRecommender({
                 />
                 <div className="kz-style-card-overlay">
                   <span className="kz-style-card-tag">
-                    {isSelected ? "● SELECTED PROFILE" : "SELECT PROFILE"}
+                    {isSelected ? "Selected profile" : "Select profile"}
                   </span>
                   <h3 className="kz-style-card-title">{style.name}</h3>
                   <div className="kz-style-card-bar" />
@@ -101,7 +101,7 @@ export function SoundStyleRecommender({
         <div className="kz-sound-style-display">
           <div className="kz-sound-style-banner">
             <div className="kz-style-banner-info">
-              <span className="kz-style-banner-badge">TUNED FOR {currentStyle.name.toUpperCase()}</span>
+              <span className="kz-style-banner-badge">Tuned for {currentStyle.name}</span>
               <h3>{currentStyle.desc}</h3>
               <div className="kz-style-banner-tags">
                 {(currentStyle.tags || []).map((t) => (
@@ -138,7 +138,7 @@ export function SoundStyleRecommender({
                       loading="lazy"
                       decoding="async"
                     />
-                    <span className="kz-matched-badge">RECOMMENDED</span>
+                    <span className="kz-matched-badge">Recommended</span>
                   </div>
 
                   <div className="kz-matched-body">
@@ -147,8 +147,10 @@ export function SoundStyleRecommender({
                       {p.name}
                     </h4>
 
+                    {p.specs?.[0] && (
+                      <span className="kz-card-spec-line">{p.specs.slice(0, 2).join(" · ")}</span>
+                    )}
                     <div className="kz-matched-prices">
-                      <span className="kz-matched-original">{formatCurrency(origPrice)}</span>
                       <span className="kz-matched-sale">{formatCurrency(p.price)}</span>
                     </div>
 
@@ -171,7 +173,7 @@ export function SoundStyleRecommender({
                           onAddToCart(p);
                         }}
                       >
-                        + Add to Cart
+                        Add to cart
                       </button>
                     </div>
                   </div>

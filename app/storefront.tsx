@@ -655,7 +655,7 @@ export function Storefront() {
                 <div className="catalog-controls">
                   <input
                     type="search"
-                    placeholder="Filter products..."
+                    placeholder="Filter catalog"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="catalog-search-inline"
@@ -814,7 +814,7 @@ function ProductCard({
       tabIndex={0}
     >
       <div className="kz-card-badge-row">
-        {product.featured ? <span className="kz-card-badge sale">FEATURED</span> : null}
+        {product.featured ? <span className="kz-card-badge sale">Featured</span> : null}
         {stockAlert ? (
           <span className={`kz-card-badge ${stockAlert.type === "low" ? "low" : "hot"}`}>
             {stockAlert.label}
@@ -850,16 +850,19 @@ function ProductCard({
       </div>
 
       <div className="kz-card-body">
-        <span className="kz-card-category">{product.category}</span>
+        <div className="kz-card-meta-top">
+          <span className="kz-card-category">{product.category}</span>
+          <span className={`kz-card-stock-dot ${product.inStock ? "in" : "out"}`}>
+            {product.inStock ? "In stock" : "Out of stock"}
+          </span>
+        </div>
         <h3 className="kz-card-title">{product.name}</h3>
 
-        <div className="kz-card-rating">
-          <span>★★★★★</span>
-          <span className="kz-rating-count">(4.{8 + (product.name.length % 2)})</span>
-        </div>
+        {product.specs && product.specs.length > 0 ? (
+          <p className="kz-card-spec-line">{product.specs.slice(0, 2).join(" · ")}</p>
+        ) : null}
 
         <div className="kz-card-price-row">
-          <span className="kz-card-original-price">{formatCurrency(originalPrice)}</span>
           <span className="kz-card-sale-price">{formatCurrency(product.price)}</span>
         </div>
 
@@ -890,7 +893,7 @@ function ProductCard({
             }}
             disabled={!product.inStock}
           >
-            {isRecentlyAdded ? "✓ Added" : product.inStock ? "+ Add to Cart" : "Out of Stock"}
+            {isRecentlyAdded ? "Added" : product.inStock ? "Add to cart" : "Out of stock"}
           </button>
         </div>
       </div>
