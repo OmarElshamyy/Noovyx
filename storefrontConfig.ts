@@ -212,7 +212,7 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
     enabled: true,
     showSearch: true,
     brandMark: "NX",
-    brandTitle: "Noovyx",
+    brandTitle: "NOOVYX",
     brandSub: "Pro Audio · Egypt",
     searchPlaceholder: "Search gear",
     whatsappNumber: "201000000000",
@@ -513,7 +513,7 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
   footer: {
     enabled: true,
     brandMark: "NX",
-    brandName: "Noovyx",
+    brandName: "NOOVYX",
     description: "In-ear monitors, portable DACs, and upgrade cables in Egypt. Inspected before dispatch and delivered with cash on delivery.",
     copyrightText: "Noovyx Egypt (noovyx.com). All rights reserved.",
     disclaimerText: "Independent audio store supplying authentic KZ and multi-brand Hi-Fi equipment across Egypt.",
@@ -644,7 +644,7 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
           ? DEFAULT_STOREFRONT_CONFIG.header.brandMark
           : r.header.brandMark,
       brandTitle:
-        !r.header?.brandTitle || r.header.brandTitle === "AUDIO STORE" || r.header.brandTitle === "NOOVYX"
+        !r.header?.brandTitle || r.header.brandTitle === "AUDIO STORE" || r.header.brandTitle === "Noovyx"
           ? DEFAULT_STOREFRONT_CONFIG.header.brandTitle
           : r.header.brandTitle,
       brandSub:
@@ -782,7 +782,7 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
           ? DEFAULT_STOREFRONT_CONFIG.footer.brandMark
           : r.footer.brandMark,
       brandName:
-        !r.footer?.brandName || r.footer.brandName === "Audio Store"
+        !r.footer?.brandName || r.footer.brandName === "Audio Store" || r.footer.brandName === "Noovyx"
           ? DEFAULT_STOREFRONT_CONFIG.footer.brandName
           : r.footer.brandName,
       copyrightText:

@@ -9051,8 +9051,8 @@ body {
   font-size: 1.125rem !important;
   font-weight: 700 !important;
   color: var(--ink) !important;
-  letter-spacing: -0.015em !important;
-  text-transform: none !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
 }
 
 .kz-brand-sub,
@@ -11913,6 +11913,22 @@ body {
 
   .kz-action-btn.kz-cart-trigger .kz-cart-label {
     display: none;
+  }
+}
+
+/* Mobile Header Sidebar-Only Navigation + All-Caps Brand Name */
+.footer-brand span:last-child {
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+@media (max-width: 960px) {
+  .kz-desktop-nav {
+    display: none !important;
+  }
+
+  .kz-mobile-menu-btn {
+    display: flex !important;
   }
 }
 

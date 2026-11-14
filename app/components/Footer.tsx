@@ -108,7 +108,7 @@ export function Footer({
             >
               {footerConfig.brandMark || "NX"}
             </span>
-            <span>{footerConfig.brandName || "Noovyx"}</span>
+            <span>{footerConfig.brandName || "NOOVYX"}</span>
           </div>
           <p className="footer-brand-desc">{footerConfig.description}</p>
         </div>
