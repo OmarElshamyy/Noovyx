@@ -366,6 +366,7 @@ export default function AdminPage() {
   const [isPublishingBanner, setIsPublishingBanner] = useState<boolean>(false);
   const [failedLoginCount, setFailedLoginCount] = useState<number>(0);
   const [loginLockedUntil, setLoginLockedUntil] = useState<number>(0);
+  const [loginError, setLoginError] = useState<string>("");
 
   const hasAdminAccess = adminState === "claim" || adminState === "document";
 
@@ -871,11 +872,14 @@ export default function AdminPage() {
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setLoginError("");
 
     const now = Date.now();
     if (loginLockedUntil > now) {
       const waitSec = Math.ceil((loginLockedUntil - now) / 1000);
-      showToast("error", `Too many failed attempts. Please wait ${waitSec}s before trying again.`);
+      const msg = `Too many failed attempts. Please wait ${waitSec}s before trying again.`;
+      setLoginError(msg);
+      showToast("error", msg);
       return;
     }
 
@@ -897,17 +901,28 @@ export default function AdminPage() {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
       setPassword("");
+      setLoginError("");
       setFailedLoginCount(0);
       setLoginLockedUntil(0);
       showToast("success", "Signed in successfully.");
-    } catch {
+    } catch (err) {
       const nextCount = failedLoginCount + 1;
       setFailedLoginCount(nextCount);
+      const rawMessage = err instanceof Error ? err.message : String(err || "");
+      const isCredentialError = /invalid login credentials|wrong-password|user-not-found|invalid-credential/i.test(
+        rawMessage,
+      );
       if (nextCount >= 5) {
         setLoginLockedUntil(Date.now() + 60_000);
-        showToast("error", "Too many failed sign-in attempts. Locked for 60 seconds.");
+        const msg = "Too many failed sign-in attempts. Locked for 60 seconds.";
+        setLoginError(msg);
+        showToast("error", msg);
       } else {
-        showToast("error", "Invalid email or password.");
+        const msg = isCredentialError || !rawMessage
+          ? "Invalid email or password."
+          : `Sign-in error: ${rawMessage}`;
+        setLoginError(msg);
+        showToast("error", msg);
       }
     }
   }
@@ -1516,6 +1531,12 @@ export default function AdminPage() {
   if (!user) {
     return (
       <main className="admin-login">
+        {toast.type !== "idle" && (
+          <aside className={`admin-toast ${toast.type}`} role="status" aria-live="polite">
+            <span>{toast.type === "success" ? "✓" : "⚠"}</span>
+            <span>{toast.text}</span>
+          </aside>
+        )}
         <section className="admin-login-panel">
           <p className="category-label">Noovyx Admin</p>
           <h1>Noovyx Command Center</h1>
@@ -1526,7 +1547,10 @@ export default function AdminPage() {
                 autoComplete="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (loginError) setLoginError("");
+                }}
                 required
               />
             </label>
@@ -1536,10 +1560,29 @@ export default function AdminPage() {
                 autoComplete="current-password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (loginError) setLoginError("");
+                }}
                 required
               />
             </label>
+            {loginError ? (
+              <p
+                role="alert"
+                style={{
+                  margin: "0 0 12px",
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  background: "rgba(239, 68, 68, 0.14)",
+                  border: "1px solid rgba(239, 68, 68, 0.4)",
+                  color: "#fecaca",
+                  fontSize: "0.875rem",
+                }}
+              >
+                {loginError}
+              </p>
+            ) : null}
             <button className="primary-button wide" type="submit">
               Sign In
             </button>

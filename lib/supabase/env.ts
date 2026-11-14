@@ -7,7 +7,12 @@
 export type DataBackendMode = "supabase" | "hybrid" | "firebase";
 
 export function getSupabaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const raw = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  if (!raw) return "";
+  // Guard against copying the REST/Auth API endpoint URL (e.g. .../rest/v1) into NEXT_PUBLIC_SUPABASE_URL
+  return raw
+    .replace(/\/+(rest|auth|storage|realtime|functions|graphql)\/v\d+.*$/i, "")
+    .replace(/\/+$/, "");
 }
 
 export function getSupabasePublishableKey(): string {
