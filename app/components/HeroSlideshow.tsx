@@ -63,7 +63,7 @@ export function HeroSlideshow({
             <div className="kz-hero-features-row">
               {slide.features.map((feat) => (
                 <span key={feat} className="kz-hero-pill">
-                  ✓ {feat}
+                  {feat}
                 </span>
               ))}
             </div>

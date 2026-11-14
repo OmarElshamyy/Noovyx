@@ -200,26 +200,25 @@ export interface StorefrontConfig {
 export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
   announcement: {
     enabled: true,
-    intervalSeconds: 4,
+    intervalSeconds: 5,
     messages: [
-      "🎧 AUTHENTIC KZ & AUDIO GEAR — DIRECT TO YOUR DOOR",
-      "🔥 NEW DROPS ADDED — SHOP THE LATEST IEM RELEASES",
-      "⚡ CASH ON DELIVERY AVAILABLE ACROSS EGYPT",
-      "🎮 GAMING AUDIO OPTIMIZED FOR COMPETITIVE PLAY",
-      "🔊 VERIFIED KZ DRIVERS · CABLES · DACS · WIRELESS ADAPTERS",
+      "Authentic KZ & Hi-Fi audio gear delivered across Egypt",
+      "Cash on delivery on all in-ear monitors, DACs, and cables",
+      "Every unit inspected for driver balance before dispatch",
+      "Need pairing advice? Message our audio team on WhatsApp",
     ],
   },
   header: {
     enabled: true,
     showSearch: true,
     brandMark: "NX",
-    brandTitle: "NOOVYX",
-    brandSub: "PRO AUDIO // EGYPT",
-    searchPlaceholder: "Search audio gear...",
+    brandTitle: "Noovyx",
+    brandSub: "Pro Audio · Egypt",
+    searchPlaceholder: "Search gear",
     whatsappNumber: "201000000000",
-    drawerTagline: "Authentic IEMs & Pro Audio Direct across Egypt. Cash On Delivery.",
+    drawerTagline: "Authentic IEMs, portable DACs, and upgrade cables across Egypt. Cash on delivery.",
     navLinks: [
-      { id: "all", label: "All Gear", visible: true },
+      { id: "all", label: "All gear", visible: true },
       { id: "iems", label: "KZ IEMs", visible: true },
       { id: "wireless", label: "Wireless", visible: true },
       { id: "cables", label: "Cables", visible: true },
@@ -227,109 +226,109 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
       { id: "accessories", label: "Accessories", visible: true },
     ],
     drawerCategories: [
-      { id: "all", label: "All Products", image: "/products/kz-castor-bass.png", visible: true },
-      { id: "iems", label: "KZ Earphones & IEMs", image: "/products/kz-zs10-pro-2.png", visible: true },
-      { id: "wireless", label: "Bluetooth Adapters", image: "/products/kz-az09-wireless.png", visible: true },
-      { id: "cables", label: "Upgrade Audio Cables", image: "/products/kz-t8-silver-cable.png", visible: true },
-      { id: "gamers", label: "KZ For Gamers", image: "/products/kz-zsn-pro-x.png", visible: true },
-      { id: "dacs", label: "Hi-Fi Portable DACs", image: "/products/kz-am02-dac.png", visible: true },
-      { id: "accessories", label: "Ear Tips & Accessories", image: "/products/kz-ls01-tips.png", visible: true },
+      { id: "all", label: "All products", image: "/products/kz-castor-bass.png", visible: true },
+      { id: "iems", label: "KZ earphones & IEMs", image: "/products/kz-zs10-pro-2.png", visible: true },
+      { id: "wireless", label: "Bluetooth adapters", image: "/products/kz-az09-wireless.png", visible: true },
+      { id: "cables", label: "Upgrade audio cables", image: "/products/kz-t8-silver-cable.png", visible: true },
+      { id: "gamers", label: "Gaming IEMs", image: "/products/kz-zsn-pro-x.png", visible: true },
+      { id: "dacs", label: "Portable USB-C DACs", image: "/products/kz-am02-dac.png", visible: true },
+      { id: "accessories", label: "Ear tips & cases", image: "/products/kz-ls01-tips.png", visible: true },
     ],
   },
   hero: {
     enabled: true,
     autoPlay: true,
     intervalSeconds: 6,
-    topLeftTag: "HYBRID DRIVERS",
-    bottomRightTag: "HI-RES AUDIO",
+    topLeftTag: "Dual-driver acoustic shell",
+    bottomRightTag: "0.75mm 2-pin detachable",
     trustBadges: [
-      "🇪🇬 Local Fast Delivery Across Egypt",
-      "💵 Cash On Delivery Available",
-      "✓ Quality Inspected",
+      "Fast delivery across Egypt",
+      "Cash on delivery",
+      "Driver-checked before dispatch",
     ],
     slides: [
       {
         id: "castor",
-        badge: "FLAGSHIP DUAL-DRIVER // 2026 DROP",
-        tagline: "ACOUSTIC MASTERCLASS",
-        title: "KZ CASTOR BASS EDITION",
-        desc: "Dual dynamic drivers with 4-stage electronic switches. Engineered for sub-bass rumble, holographic separation, and competitive audio cues.",
-        primaryCtaText: "SHOP CASTOR",
+        badge: "Flagship dual-driver IEM",
+        tagline: "Tunable sub-bass & studio separation",
+        title: "KZ Castor Bass Edition",
+        desc: "Dual dynamic drivers with 4-stage acoustic tuning switches. Built for deep sub-bass extension, clear vocal midrange, and accurate positional cues in games.",
+        primaryCtaText: "Shop Castor",
         primaryCtaTarget: "#catalog",
-        secondaryCtaText: "EXPLORE SOUND",
+        secondaryCtaText: "Explore sound profiles",
         secondaryCtaTarget: "#sound-finder",
         image: "/products/kz-castor-bass.png",
-        features: ["Dual Dynamic Drivers", "4 Tuning Switches", "Sub-Bass Profile", "0.75mm 2-Pin"],
+        features: ["2DD coaxial architecture", "4 tuning switches", "20Hz–40kHz response", "0.75mm 2-pin"],
         targetCategory: "IEMs",
       },
       {
         id: "zs10",
-        badge: "10-DRIVER HYBRID ARSENAL",
-        tagline: "PRO STAGE & GAMING",
-        title: "KZ ZS10 PRO 2 HYBRID",
-        desc: "1DD + 4BA hybrid architecture with 3-way electronic crossover. Hear footstep distance, weapon reloads, and micro-nuances before anyone else.",
-        primaryCtaText: "EXPLORE IEMS",
+        badge: "5-driver hybrid monitor",
+        tagline: "Stage monitoring & competitive gaming",
+        title: "KZ ZS10 Pro 2 Hybrid",
+        desc: "10mm dynamic driver paired with dual balanced armatures and a 3-way electronic crossover. Delivers pinpoint imaging for footsteps, instruments, and studio mixes.",
+        primaryCtaText: "Shop ZS10 Pro 2",
         primaryCtaTarget: "#bestsellers",
-        secondaryCtaText: "BROWSE CATALOG",
+        secondaryCtaText: "Browse catalog",
         secondaryCtaTarget: "#catalog",
         image: "/products/kz-zs10-pro-2.png",
-        features: ["1DD + 4BA Architecture", "3-Way Crossover", "Stainless Faceplate", "32-Bit Clarity"],
+        features: ["1DD + 4BA hybrid", "3-way crossover", "Alloy faceplate", "4-level tuning switch"],
         targetCategory: "IEMs",
       },
       {
         id: "wireless",
-        badge: "TRUE WIRELESS FREEDOM",
-        tagline: "CABLE-FREE PERFORMANCE",
-        title: "KZ AZ09 BLUETOOTH ADAPTER",
-        desc: "Convert your detachable KZ IEMs into low-latency true wireless earbuds with AAC/SBC transmission, gaming mode, and 6-hour battery life.",
-        primaryCtaText: "SHOP WIRELESS",
+        badge: "True wireless earhook module",
+        tagline: "Detachable Bluetooth 5.2 upgrade",
+        title: "KZ AZ09 Wireless Adapter",
+        desc: "Convert any 2-pin KZ in-ear monitor into low-latency wireless earphones with AAC transmission, dedicated game mode, and a charging case.",
+        primaryCtaText: "Shop wireless",
         primaryCtaTarget: "#catalog",
-        secondaryCtaText: "VIEW CATEGORIES",
+        secondaryCtaText: "View categories",
         secondaryCtaTarget: "#catalog",
         image: "/products/kz-az09-wireless.png",
-        features: ["Bluetooth 5.2", "Low Latency Game Mode", "AAC/SBC Codec", "Comfort Earhook"],
+        features: ["Bluetooth 5.2", "Low-latency mode", "AAC / SBC codec", "0.75mm C-pin"],
         targetCategory: "Wireless",
       },
     ],
   },
   bestSellers: {
     enabled: true,
-    kicker: "COMMUNITY TESTED & VERIFIED",
-    title: "Best Sellers",
-    subtitle: "Battle-ready audio picks for detail, imaging, and impact across Egypt.",
-    ctaText: "View All Gear",
+    kicker: "Most requested in Egypt",
+    title: "Best sellers",
+    subtitle: "Proven in-ear monitors and portable DACs chosen by musicians, gamers, and daily listeners.",
+    ctaText: "View all gear",
     maxItems: 4,
   },
   soundFinder: {
     enabled: true,
-    kicker: "PERSONALIZED SOUND PROFILES",
-    title: "Find Your Ideal Earphones",
-    subtitle: "Every driver configuration delivers a unique soundstage. Select a sound style to explore tuned audio gear.",
+    kicker: "Acoustic profile matcher",
+    title: "Find your sound signature",
+    subtitle: "Each driver layout shapes the stage differently. Pick how you listen to filter matching hardware.",
     styles: [
       {
         id: "gaming",
-        name: "Competitive Gaming",
+        name: "Competitive gaming",
         image: "/styles/gamers.jpg",
-        desc: "Positional 3D imaging, footstep separation, and explosive transient bass tuned for competitive gaming and esports.",
-        tags: ["Positional Audio", "Footstep Imaging", "Low-Latency Game Mode"],
+        desc: "Accurate directional imaging, clean footstep separation, and controlled sub-bass that never muddies voice comms.",
+        tags: ["Directional imaging", "Footstep clarity", "Low-latency ready"],
         matchCategories: ["IEMs", "DACs"],
         matchKeywords: ["castor", "zsn", "gale", "krila"],
       },
       {
         id: "studio",
-        name: "Stage & Studio Monitoring",
+        name: "Stage & studio monitoring",
         image: "/styles/singers.webp",
-        desc: "Forward vocal clarity, multi-armature instrument separation, and transparent acoustic resolution for performers and mixing.",
-        tags: ["Vocal Presence", "Balanced Armatures", "Stage Isolation"],
+        desc: "Forward vocal presence, multi-armature instrument separation, and passive noise isolation for live sets and mixing.",
+        tags: ["Balanced armatures", "Vocal clarity", "26dB passive isolation"],
         matchCategories: ["IEMs"],
         matchKeywords: ["zs10", "pro", "as16", "pr3", "symphony"],
       },
       {
         id: "everyday",
-        name: "Wireless & Everyday Listening",
+        name: "Wireless & daily listening",
         image: "/styles/sound-style.webp",
-        desc: "Visceral sub-bass rumble, cable-free Bluetooth earhook convenience, and dual-driver tuning switches for versatile daily sound.",
-        tags: ["Bluetooth Freedom", "Sub-Bass Punch", "Tuning Switches"],
+        desc: "Deep sub-bass punch, Bluetooth earhook convenience, and hardware switches to tailor the tuning on the go.",
+        tags: ["Bluetooth 5.2", "Sub-bass extension", "Tuning switches"],
         matchCategories: ["Wireless", "IEMs"],
         matchKeywords: ["az09", "carol", "an01", "xz10", "sora", "castor"],
       },
@@ -337,17 +336,17 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
   },
   newReleases: {
     enabled: true,
-    kicker: "FRESH DROPS 2026",
-    title: "New Releases",
-    subtitle: "The latest acoustic driver tunings and precision adapters straight from the factory.",
-    ctaText: "Shop New IEMs",
+    kicker: "Latest arrivals",
+    title: "New releases",
+    subtitle: "Recent multi-driver monitors, planar units, and USB-C DAC dongles now in stock.",
+    ctaText: "Browse new arrivals",
     maxItems: 4,
   },
   catalogSection: {
     enabled: true,
-    kicker: "Shop by Category",
-    title: "Select Category & Audio Loadout",
-    subtitle: "Filter our verified in-ear monitors, upgrade cables, DAC dongles, and wireless adapters.",
+    kicker: "Full catalog",
+    title: "Shop by category",
+    subtitle: "Filter in-ear monitors, detachable cables, USB-C DACs, wireless adapters, and ear tips.",
     discountMultiplier: 1.25,
     categories: [
       { id: "all", label: "All", filterValue: "All", visible: true },
@@ -361,118 +360,118 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
   },
   reviews: {
     enabled: true,
-    kicker: "VERIFIED COMMUNITY FEEDBACK",
-    title: "Let Customers Speak For Us",
-    overallRating: "4.9 / 5.0 Rating",
-    overallSubtext: "from verified listeners in Egypt",
+    kicker: "Customer feedback",
+    title: "Verified listener reviews",
+    overallRating: "4.9 / 5.0",
+    overallSubtext: "from verified buyers across Egypt",
     items: [
       {
         id: "r1",
         author: "Tarek Fathy",
-        city: "Cairo, Egypt",
-        date: "October 12, 2026",
+        city: "Cairo",
+        date: "Oct 12, 2026",
         product: "KZ Castor Bass Edition",
         rating: 5,
-        headline: "Unreal sub-bass texture and gaming clarity",
-        text: "I play competitive CS2 and Valorant. The soundstage separation on the Castor with the sub-bass switches engaged lets you pinpoint footstep depth accurately. Fast COD delivery to Nasr City in 48 hours.",
+        headline: "Pinpoint footstep depth and clean sub-bass",
+        text: "I play CS2 and Valorant daily. With switches 1 and 2 up on the Castor, sub-bass stays tight without bleeding into footsteps. Delivered cash on delivery to Nasr City in 48 hours.",
         verified: true,
       },
       {
         id: "r2",
         author: "Mina Youssef",
-        city: "Alexandria, Egypt",
-        date: "October 09, 2026",
+        city: "Alexandria",
+        date: "Oct 9, 2026",
         product: "KZ ZS10 Pro 2 Hybrid",
         rating: 5,
-        headline: "Stage monitoring performance at an honest price",
-        text: "Used these on stage for our live band set last weekend. The 4 balanced armatures handle vocals and synth highs without harsh sibilance, and the seal blocked the stage monitors cleanly.",
+        headline: "Reliable stage monitoring for live sets",
+        text: "Used these for our live band set last weekend. The balanced armatures keep vocals and keys distinct without harshness, and the shell seal blocks stage noise well.",
         verified: true,
       },
       {
         id: "r3",
         author: "Ziad El-Shamy",
-        city: "Giza, Egypt",
-        date: "September 28, 2026",
+        city: "Giza",
+        date: "Sep 28, 2026",
         product: "KZ AZ09 Wireless Earhooks",
         rating: 5,
-        headline: "Turned my favorite IEMs into wireless daily drivers",
-        text: "Zero cable clutter during workouts and walking around. Connects instantly to my phone with low audio lag when watching videos. Very comfortable earhook loop.",
+        headline: "Turned my wired IEMs into daily wireless monitors",
+        text: "No cable snagging during commutes or workouts. Pairs quickly with my phone and keeps latency low on video playback. Comfortable earhook shape.",
         verified: true,
       },
       {
         id: "r4",
         author: "Karim Mostafa",
-        city: "Mansoura, Egypt",
-        date: "September 19, 2026",
+        city: "Mansoura",
+        date: "Sep 19, 2026",
         product: "KZ AM02 Type-C DAC Dongle",
         rating: 5,
-        headline: "Clean background with zero hiss",
-        text: "Plugging this DAC into my phone removed all electronic noise floor. Driving the ZSN Pro X with punchier bass dynamics. The metal housing feels ultra durable.",
+        headline: "Silent noise floor and stronger headroom",
+        text: "Plugging this DAC into my phone removed the background hiss completely and gave my ZSN Pro X noticeably tighter low-end control.",
         verified: true,
       },
     ],
   },
   trust: {
     enabled: true,
-    kicker: "Our commitment",
-    title: "Why Shop With Us",
+    kicker: "How we work",
+    title: "Why order from Noovyx",
     items: [
       {
         id: "t1",
-        title: "Authentic Products",
-        desc: "Every product is sourced directly and verified before it reaches your door.",
+        title: "Authentic hardware",
+        desc: "Sourced directly with original factory packaging, cables, and serial verification.",
       },
       {
         id: "t2",
-        title: "Quality Checked",
-        desc: "Drivers, cables, and connections inspected for acoustic purity before dispatch.",
+        title: "Driver-checked in Cairo",
+        desc: "Every unit is inspected for left/right channel balance and connector fit before dispatch.",
       },
       {
         id: "t3",
-        title: "Fast Dispatch",
-        desc: "Inquiries confirmed promptly with door-to-door courier service across Egypt.",
+        title: "48-hour courier dispatch",
+        desc: "Orders are confirmed by phone or WhatsApp and shipped door-to-door across all governorates.",
       },
       {
         id: "t4",
-        title: "Simple Order Process",
-        desc: "No complicated checkout accounts. Submit your loadout request and pay on delivery.",
+        title: "Cash on delivery",
+        desc: "No account required. Place your order request online and pay the courier upon receipt.",
       },
       {
         id: "t5",
-        title: "WhatsApp Assistance",
-        desc: "Direct support for cable compatibility, driver sound advice, and tracking.",
+        title: "Pin & DAC pairing help",
+        desc: "Unsure whether your IEM uses 0.75mm C-pin or B-pin? Ask our team on WhatsApp before ordering.",
       },
     ],
   },
   blog: {
     enabled: true,
-    kicker: "Audio knowledge",
-    title: "Guides & Resources",
-    subtitle: "Learn before you buy. Real audio benchmarks, driver breakdowns, and setups.",
+    kicker: "Technical guides",
+    title: "Audio guides & setup notes",
+    subtitle: "Practical notes on driver architectures, impedance matching, and stage monitoring.",
     articles: [
       {
         id: "b1",
         image: "/blog/blog-guitarists.png",
-        tag: "IEM Guide",
-        title: "Best KZ Earphones for Guitarists & Stage in 2026",
-        excerpt: "Driver type, impedance, and acoustic isolation: the three essentials when choosing your first professional in-ear monitor.",
-        readMoreText: "Read Guide →",
+        tag: "Stage guide",
+        title: "Choosing in-ear monitors for guitarists and live stage use",
+        excerpt: "Driver configuration, passive isolation ratings, and why 2-pin detachable cables matter on stage.",
+        readMoreText: "Read guide →",
       },
       {
         id: "b2",
         image: "/blog/blog-producers.png",
-        tag: "Studio & Mixing",
-        title: "Best KZ In-Ear Monitors for Music Production and Mixing",
-        excerpt: "Micro-detail separation, flat tuning, and why dedicated hybrid multi-driver IEMs beat conventional studio headphones for pinpoint stereo positioning.",
-        readMoreText: "Read Guide →",
+        tag: "Studio & mixing",
+        title: "Hybrid multi-driver IEMs for mixing and reference checks",
+        excerpt: "How dynamic + balanced armature crossovers handle sub-bass translation and stereo imaging.",
+        readMoreText: "Read guide →",
       },
       {
         id: "b3",
         image: "/blog/blog-live-stage.png",
-        tag: "Live Monitoring",
-        title: "Best Value KZ Earphones for Live Stage Monitoring",
-        excerpt: "High acoustic pressure headroom, stage noise attenuation, and reliable sweat-resistant 2-pin cables for intense live sets.",
-        readMoreText: "Read Guide →",
+        tag: "Hardware care",
+        title: "Matching USB-C DAC dongles and ear tips to your IEMs",
+        excerpt: "Why a dedicated DAC lowers output impedance and how bore size affects treble and seal.",
+        readMoreText: "Read guide →",
       },
     ],
   },
@@ -483,26 +482,26 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
         id: "s1",
         num: "01",
         title: "Confirmed orders",
-        desc: "Every inquiry is checked before payment or delivery is arranged.",
+        desc: "Every order request is verified via WhatsApp or phone before courier dispatch.",
       },
       {
         id: "s2",
         num: "02",
-        title: "Loadout matching",
-        desc: "Ask for cable, tip, and adapter compatibility in the order notes.",
+        title: "Connector matching",
+        desc: "Add your IEM model in the checkout notes and we will verify cable and adapter fit.",
       },
       {
         id: "s3",
         num: "03",
-        title: "KZ-first arsenal",
-        desc: "The store is focused around IEMs and portable audio essentials.",
+        title: "Curated audio catalog",
+        desc: "Focused on high-value in-ear monitors, portable DACs, and replacement parts.",
       },
     ],
   },
   finalCta: {
     enabled: true,
-    kicker: "Ready check",
-    title: "Lock in your next audio loadout.",
+    kicker: "Ready to order",
+    title: "Review your audio selection",
     buttonText: "Open cart",
   },
   recentlyViewed: {
@@ -515,9 +514,9 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
     enabled: true,
     brandMark: "NX",
     brandName: "Noovyx",
-    description: "Egypt's premium IEM and portable audio gear store. Authentic products, quality-checked, delivered cash on delivery.",
+    description: "In-ear monitors, portable DACs, and upgrade cables in Egypt. Inspected before dispatch and delivered with cash on delivery.",
     copyrightText: "Noovyx Egypt (noovyx.com). All rights reserved.",
-    disclaimerText: "Noovyx is an independent audio store offering authentic KZ and multi-brand Hi-Fi audio gear.",
+    disclaimerText: "Independent audio store supplying authentic KZ and multi-brand Hi-Fi equipment across Egypt.",
   },
 };
 
@@ -608,7 +607,9 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
       : DEFAULT_STOREFRONT_CONFIG.header.drawerCategories;
 
   const rawSlides =
-    Array.isArray(r.hero?.slides) && r.hero.slides.length > 0
+    Array.isArray(r.hero?.slides) &&
+    r.hero.slides.length > 0 &&
+    r.hero.slides[0]?.badge !== "FLAGSHIP DUAL-DRIVER // 2026 DROP"
       ? r.hero.slides.slice(0, 10)
       : DEFAULT_STOREFRONT_CONFIG.hero.slides;
 
@@ -627,7 +628,9 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
       ...DEFAULT_STOREFRONT_CONFIG.announcement,
       ...stripProtoKeys(r.announcement as Record<string, unknown>),
       messages:
-        Array.isArray(r.announcement?.messages) && r.announcement.messages.length > 0
+        Array.isArray(r.announcement?.messages) &&
+        r.announcement.messages.length > 0 &&
+        !String(r.announcement.messages[0]).includes("🎧 AUTHENTIC KZ")
           ? r.announcement.messages.slice(0, 10).map((m) => String(m).slice(0, 200))
           : DEFAULT_STOREFRONT_CONFIG.announcement.messages,
     },
@@ -641,13 +644,19 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
           ? DEFAULT_STOREFRONT_CONFIG.header.brandMark
           : r.header.brandMark,
       brandTitle:
-        !r.header?.brandTitle || r.header.brandTitle === "AUDIO STORE"
+        !r.header?.brandTitle || r.header.brandTitle === "AUDIO STORE" || r.header.brandTitle === "NOOVYX"
           ? DEFAULT_STOREFRONT_CONFIG.header.brandTitle
           : r.header.brandTitle,
       brandSub:
-        !r.header?.brandSub || r.header.brandSub === "OFFICIAL ARSENAL // EGYPT"
+        !r.header?.brandSub ||
+        r.header.brandSub === "OFFICIAL ARSENAL // EGYPT" ||
+        r.header.brandSub === "PRO AUDIO // EGYPT"
           ? DEFAULT_STOREFRONT_CONFIG.header.brandSub
           : r.header.brandSub,
+      searchPlaceholder:
+        !r.header?.searchPlaceholder || r.header.searchPlaceholder === "Search audio gear..."
+          ? DEFAULT_STOREFRONT_CONFIG.header.searchPlaceholder
+          : r.header.searchPlaceholder,
       drawerTagline:
         !r.header?.drawerTagline ||
         r.header.drawerTagline === "Authentic KZ Audio Direct across Egypt. Cash On Delivery."
@@ -665,8 +674,18 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
     hero: {
       ...DEFAULT_STOREFRONT_CONFIG.hero,
       ...stripProtoKeys(r.hero as Record<string, unknown>),
+      topLeftTag:
+        !r.hero?.topLeftTag || r.hero.topLeftTag === "HYBRID DRIVERS"
+          ? DEFAULT_STOREFRONT_CONFIG.hero.topLeftTag
+          : r.hero.topLeftTag,
+      bottomRightTag:
+        !r.hero?.bottomRightTag || r.hero.bottomRightTag === "HI-RES AUDIO"
+          ? DEFAULT_STOREFRONT_CONFIG.hero.bottomRightTag
+          : r.hero.bottomRightTag,
       trustBadges:
-        Array.isArray(r.hero?.trustBadges) && r.hero.trustBadges.length > 0
+        Array.isArray(r.hero?.trustBadges) &&
+        r.hero.trustBadges.length > 0 &&
+        !String(r.hero.trustBadges[0]).includes("🇪🇬")
           ? r.hero.trustBadges.slice(0, 8).map((b) => String(b).slice(0, 120))
           : DEFAULT_STOREFRONT_CONFIG.hero.trustBadges,
       slides: rawSlides.map((slide) => ({
