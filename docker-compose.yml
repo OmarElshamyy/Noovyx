@@ -1,0 +1,44 @@
+# Self-hosted database stack. Start with:  docker compose up -d
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: noovyx-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: noovyx
+      POSTGRES_USER: noovyx
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5432:5432"        # localhost only - never exposed to the internet
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noovyx -d noovyx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: ["postgres", "-c", "max_connections=50", "-c", "shared_buffers=128MB"]
+
+  backup:                              # nightly compressed dump, keeps 14 days
+    image: postgres:16-alpine
+    container_name: noovyx-backup
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          pg_dump -h db -U noovyx noovyx | gzip > /backups/noovyx-$$(date +%F).sql.gz
+          find /backups -name 'noovyx-*.sql.gz' -mtime +14 -delete
+          sleep 86400
+        done
+
+volumes:
+  pgdata:

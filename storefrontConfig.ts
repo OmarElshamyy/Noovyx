@@ -1,5 +1,8 @@
+import { createClient } from "@supabase/supabase-js";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import { getSupabaseBrowserClient } from "./lib/supabase/client";
+import { getDataBackendMode, getSupabasePublishableKey, getSupabaseUrl } from "./lib/supabase/env";
 import type { MenuTab } from "./app/components/SiteHeader";
 
 export interface HeroSlideConfig {
@@ -89,6 +92,8 @@ export interface StorefrontConfig {
     messages: string[];
   };
   header: {
+    enabled?: boolean;
+    showSearch?: boolean;
     brandMark: string;
     brandTitle: string;
     brandSub: string;
@@ -163,6 +168,12 @@ export interface StorefrontConfig {
     enabled: boolean;
     items: SupportStripItemConfig[];
   };
+  recentlyViewed?: {
+    enabled: boolean;
+    kicker: string;
+    title: string;
+    maxItems: number;
+  };
   finalCta: {
     enabled: boolean;
     kicker: string;
@@ -170,11 +181,19 @@ export interface StorefrontConfig {
     buttonText: string;
   };
   footer: {
+    enabled?: boolean;
     brandMark: string;
     brandName: string;
     description: string;
     copyrightText: string;
     disclaimerText: string;
+  };
+  commerce?: {
+    shippingEnabled: boolean;
+    freeShippingThreshold: number;
+    cairoGizaShippingFee: number;
+    otherGovernoratesShippingFee: number;
+    codFee: number;
   };
 }
 
@@ -191,6 +210,8 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
     ],
   },
   header: {
+    enabled: true,
+    showSearch: true,
     brandMark: "NX",
     brandTitle: "NOOVYX",
     brandSub: "PRO AUDIO // EGYPT",
@@ -484,7 +505,14 @@ export const DEFAULT_STOREFRONT_CONFIG: StorefrontConfig = {
     title: "Lock in your next audio loadout.",
     buttonText: "Open cart",
   },
+  recentlyViewed: {
+    enabled: true,
+    kicker: "Your history",
+    title: "Recently Viewed",
+    maxItems: 6,
+  },
   footer: {
+    enabled: true,
     brandMark: "NX",
     brandName: "Noovyx",
     description: "Egypt's premium IEM and portable audio gear store. Authentic products, quality-checked, delivered cash on delivery.",
@@ -513,10 +541,13 @@ export function sanitizeUrl(value: unknown, fallback = "#catalog"): string {
     return trimmed;
   }
 
-  if (trimmed.startsWith("https://")) {
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://127.0.0.1") || trimmed.startsWith("http://localhost")) {
     try {
       const parsed = new URL(trimmed);
-      if (parsed.protocol === "https:") return parsed.toString();
+      const isLocalLoopback = parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+      if (parsed.protocol === "https:" || (parsed.protocol === "http:" && isLocalLoopback)) {
+        return parsed.toString();
+      }
     } catch {
       return fallback;
     }
@@ -538,10 +569,13 @@ export function sanitizeImageSrc(value: unknown, fallback = ""): string {
     return trimmed.replace(/["'()\\]/g, "");
   }
 
-  if (trimmed.startsWith("https://")) {
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://127.0.0.1") || trimmed.startsWith("http://localhost")) {
     try {
       const parsed = new URL(trimmed);
-      if (parsed.protocol === "https:") return parsed.toString();
+      const isLocalLoopback = parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+      if (parsed.protocol === "https:" || (parsed.protocol === "http:" && isLocalLoopback)) {
+        return parsed.toString();
+      }
     } catch {
       return fallback;
     }
@@ -600,6 +634,8 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
     header: {
       ...DEFAULT_STOREFRONT_CONFIG.header,
       ...stripProtoKeys(r.header as Record<string, unknown>),
+      enabled: r.header?.enabled !== false,
+      showSearch: r.header?.showSearch !== false,
       brandMark:
         !r.header?.brandMark || r.header.brandMark === "KZ"
           ? DEFAULT_STOREFRONT_CONFIG.header.brandMark
@@ -706,9 +742,22 @@ export function mergeStorefrontConfig(raw: Record<string, unknown> | null | unde
       ...DEFAULT_STOREFRONT_CONFIG.finalCta,
       ...stripProtoKeys(r.finalCta as Record<string, unknown>),
     },
+    recentlyViewed: {
+      enabled: r.recentlyViewed?.enabled !== false,
+      kicker:
+        typeof r.recentlyViewed?.kicker === "string" && r.recentlyViewed.kicker.trim()
+          ? r.recentlyViewed.kicker.slice(0, 80)
+          : DEFAULT_STOREFRONT_CONFIG.recentlyViewed!.kicker,
+      title:
+        typeof r.recentlyViewed?.title === "string" && r.recentlyViewed.title.trim()
+          ? r.recentlyViewed.title.slice(0, 120)
+          : DEFAULT_STOREFRONT_CONFIG.recentlyViewed!.title,
+      maxItems: Math.max(2, Math.min(12, Number(r.recentlyViewed?.maxItems) || 6)),
+    },
     footer: {
       ...DEFAULT_STOREFRONT_CONFIG.footer,
       ...stripProtoKeys(r.footer as Record<string, unknown>),
+      enabled: r.footer?.enabled !== false,
       brandMark:
         !r.footer?.brandMark || r.footer.brandMark === "KZ"
           ? DEFAULT_STOREFRONT_CONFIG.footer.brandMark
@@ -782,7 +831,57 @@ function decodeCmsPayloadFromImageUrl(raw: unknown): { config: StorefrontConfig;
   }
 }
 
+function getSupabaseCmsReadClient() {
+  if (typeof window !== "undefined") {
+    return getSupabaseBrowserClient();
+  }
+  const url = getSupabaseUrl();
+  const key = getSupabasePublishableKey();
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
+  });
+}
+
 export async function loadStorefrontConfig(): Promise<StorefrontConfig> {
+  const mode = getDataBackendMode();
+
+  if (mode === "supabase" || mode === "hybrid") {
+    const supabase = getSupabaseCmsReadClient();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from("storefront_config")
+          .select("config, updated_at")
+          .eq("id", 1)
+          .maybeSingle();
+
+        if (!error && data?.config && typeof data.config === "object") {
+          const merged = mergeStorefrontConfig(data.config as Record<string, unknown>);
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              if (data.updated_at) {
+                localStorage.setItem(STORAGE_UPDATED_AT_KEY, String(Date.parse(data.updated_at) || Date.now()));
+              }
+            } catch {}
+          }
+          return merged;
+        }
+      } catch {
+        if (mode === "supabase") {
+          return getCachedStorefrontConfig();
+        }
+      }
+    }
+    if (mode === "supabase") {
+      return getCachedStorefrontConfig();
+    }
+  }
+
   const cached = getCachedStorefrontConfig();
   let hasLocalSaved = false;
   let localUpdatedAt = 0;
@@ -861,6 +960,7 @@ export async function loadStorefrontConfig(): Promise<StorefrontConfig> {
 export async function saveStorefrontConfig(config: StorefrontConfig): Promise<void> {
   const sanitized = mergeStorefrontConfig(config as unknown as Record<string, unknown>);
   const now = Date.now();
+  const mode = getDataBackendMode();
 
   if (typeof window !== "undefined") {
     try {
@@ -874,6 +974,44 @@ export async function saveStorefrontConfig(config: StorefrontConfig): Promise<vo
         }),
       );
     } catch {}
+  }
+
+  if (mode === "supabase" || mode === "hybrid") {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      if (mode === "supabase") {
+        throw new Error("Supabase is not configured. Check NEXT_PUBLIC_SUPABASE_URL and key.");
+      }
+    } else {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("storefront_config")
+        .upsert(
+          {
+            id: 1,
+            config: sanitized,
+            updated_by: userData.user?.id ?? null,
+          },
+          { onConflict: "id" },
+        )
+        .select("id")
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to publish CMS config to Supabase: ${error.message}`);
+      }
+
+      if (typeof window !== "undefined") {
+        fetch("/api/revalidate", { method: "POST" }).catch(() => {});
+      }
+
+      if (mode === "supabase") {
+        return;
+      }
+    }
+  }
+
+  if (typeof window !== "undefined") {
     try {
       await fetch("/api/local-catalog", {
         method: "POST",

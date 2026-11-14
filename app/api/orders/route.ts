@@ -1,6 +1,11 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../../../firebase";
+import { getSupabaseAdminClient } from "../../../lib/supabase/admin";
+import { getDataBackendMode, isSupabaseAdminConfigured } from "../../../lib/supabase/env";
+import { getAuthenticatedServerUser } from "../../../lib/supabase/server";
 import { getPublicProducts } from "../../../productService";
 import type { OrderInquiryInput } from "../../../types";
 
@@ -15,7 +20,7 @@ const MAX_ITEMS = 20;
 const MAX_QUANTITY = 10;
 const MAX_SUBTOTAL = 100000;
 
-// Sliding-window rate limiter per IP (5 order submissions per 10 minutes)
+// In-memory fallback rate limiter only used when Supabase DB rate limiter is unavailable
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
 const ipRequestLog = new Map<string, number[]>();
@@ -28,7 +33,7 @@ function getClientIp(req: NextRequest): string {
   return req.headers.get("x-real-ip")?.trim() || "127.0.0.1";
 }
 
-function checkRateLimit(ip: string): { allowed: boolean; retryAfterSec: number } {
+function checkInMemoryRateLimit(ip: string): { allowed: boolean; retryAfterSec: number } {
   const now = Date.now();
   const cutoff = now - RATE_LIMIT_WINDOW_MS;
   const recent = (ipRequestLog.get(ip) || []).filter((ts) => ts > cutoff);
@@ -78,17 +83,39 @@ function cleanText(value: unknown, maxLength: number): string {
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rateCheck = checkRateLimit(ip);
+  const mode = getDataBackendMode();
+  const supabaseAdmin =
+    (mode === "supabase" || mode === "hybrid") && isSupabaseAdminConfigured()
+      ? getSupabaseAdminClient()
+      : null;
 
-  if (!rateCheck.allowed) {
-    logSecurityEvent("ORDER_RATE_LIMIT_EXCEEDED", { ip });
-    return NextResponse.json(
-      { error: "Too many order requests. Please wait a few minutes before trying again." },
+  // Persistent database rate limit when Supabase is active; in-memory fallback otherwise
+  if (supabaseAdmin) {
+    const { data: rlRows, error: rlErr } = await supabaseAdmin.rpc(
+      "check_and_increment_rate_limit",
       {
-        status: 429,
-        headers: { "Retry-After": String(rateCheck.retryAfterSec) },
+        p_key: `order:${ip}`,
+        p_window_seconds: 600,
+        p_max_requests: 5,
       },
     );
+    const rl = Array.isArray(rlRows) ? rlRows[0] : rlRows;
+    if (!rlErr && rl && rl.allowed === false) {
+      logSecurityEvent("ORDER_RATE_LIMIT_EXCEEDED", { ip });
+      return NextResponse.json(
+        { error: "Too many order requests. Please wait a few minutes before trying again." },
+        { status: 429, headers: { "Retry-After": String(rl.retry_after_sec || 60) } },
+      );
+    }
+  } else {
+    const rateCheck = checkInMemoryRateLimit(ip);
+    if (!rateCheck.allowed) {
+      logSecurityEvent("ORDER_RATE_LIMIT_EXCEEDED", { ip });
+      return NextResponse.json(
+        { error: "Too many order requests. Please wait a few minutes before trying again." },
+        { status: 429, headers: { "Retry-After": String(rateCheck.retryAfterSec) } },
+      );
+    }
   }
 
   const contentType = req.headers.get("content-type") || "";
@@ -115,7 +142,20 @@ export async function POST(req: NextRequest) {
   }
 
   // Reject mass-assignment of privileged fields
-  const forbiddenKeys = ["status", "role", "isAdmin", "admin", "createdAt", "discount", "currency", "id"];
+  const forbiddenKeys = [
+    "status",
+    "role",
+    "isAdmin",
+    "admin",
+    "createdAt",
+    "discount",
+    "currency",
+    "id",
+    "userId",
+    "user_id",
+    "guestTokenHash",
+    "guest_token_hash",
+  ];
   for (const key of forbiddenKeys) {
     if (key in body) {
       logSecurityEvent("MASS_ASSIGNMENT_ATTEMPT", { ip, field: key });
@@ -128,8 +168,11 @@ export async function POST(req: NextRequest) {
 
   const customerName = cleanText(body.customerName, MAX_TEXT_LENGTHS.customerName);
   const contact = cleanText(body.contact, MAX_TEXT_LENGTHS.contact);
+  const governorate = cleanText(body.governorate, 80);
   const address = cleanText(body.address, MAX_TEXT_LENGTHS.address);
   const notes = cleanText(body.notes, MAX_TEXT_LENGTHS.notes);
+  const couponCode = cleanText(body.couponCode, 40).toUpperCase();
+  const idempotencyKey = cleanText(body.idempotencyKey, 120);
 
   if (!customerName || customerName.length < 2 || !contact || !address || address.length < 3) {
     return NextResponse.json(
@@ -153,12 +196,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Load canonical server-side product catalog
   const catalog = await getPublicProducts();
   const catalogById = new Map(catalog.map((p) => [p.id, p]));
 
-  // Aggregate quantities by productId to prevent duplicate-line stock bypass
-  const aggregatedQuantities = new Map<string, { quantity: number; clientUnitPrice: number }>();
+  const aggregated = new Map<
+    string,
+    { productId: string; variantId?: string; quantity: number; clientUnitPrice: number }
+  >();
 
   for (const rawItem of body.items) {
     if (!rawItem || typeof rawItem !== "object") {
@@ -166,6 +210,7 @@ export async function POST(req: NextRequest) {
     }
     const itemObj = rawItem as Record<string, unknown>;
     const productId = cleanText(itemObj.productId, 80);
+    const variantId = cleanText(itemObj.variantId, 80) || undefined;
     const rawQty = Number(itemObj.quantity);
     const clientUnitPrice = Number(itemObj.unitPrice);
 
@@ -177,7 +222,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existing = aggregatedQuantities.get(productId);
+    const key = `${productId}::${variantId || ""}`;
+    const existing = aggregated.get(key);
     const nextQty = (existing?.quantity || 0) + rawQty;
     if (nextQty > MAX_QUANTITY) {
       return NextResponse.json(
@@ -185,13 +231,13 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    aggregatedQuantities.set(productId, { quantity: nextQty, clientUnitPrice });
+    aggregated.set(key, { productId, variantId, quantity: nextQty, clientUnitPrice });
   }
 
   const verifiedItems: OrderInquiryInput["items"] = [];
   let serverSubtotal = 0;
 
-  for (const [productId, { quantity, clientUnitPrice }] of aggregatedQuantities.entries()) {
+  for (const { productId, variantId, quantity, clientUnitPrice } of aggregated.values()) {
     const product = catalogById.get(productId);
     if (!product || !product.isActive) {
       logSecurityEvent("UNKNOWN_OR_INACTIVE_PRODUCT_ORDER", { ip, productId });
@@ -201,19 +247,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!product.inStock || product.stockQuantity < quantity) {
+    const variant = variantId
+      ? product.variants?.find((v) => v.id === variantId && v.isActive)
+      : undefined;
+
+    if (product.hasVariants && !variant) {
+      return NextResponse.json(
+        { error: `Please select an option for "${product.name}".` },
+        { status: 400 },
+      );
+    }
+
+    const availableStock = variant ? variant.stockQuantity : product.stockQuantity;
+    const isInStock = variant ? variant.inStock : product.inStock;
+
+    if (!isInStock || availableStock < quantity) {
       return NextResponse.json(
         { error: `"${product.name}" does not have enough stock for quantity ${quantity}.` },
         { status: 409 },
       );
     }
 
-    const canonicalUnitPrice = Math.round(Number(product.price));
+    const canonicalUnitPrice = Math.round(Number(variant?.priceOverride ?? product.price));
     if (!Number.isFinite(canonicalUnitPrice) || canonicalUnitPrice <= 0) {
       return NextResponse.json({ error: "Invalid catalog product price." }, { status: 500 });
     }
 
-    // Detect client-side price tampering
     if (Number.isFinite(clientUnitPrice) && Math.round(clientUnitPrice) !== canonicalUnitPrice) {
       logSecurityEvent("PRICE_TAMPERING_DETECTED", {
         ip,
@@ -230,6 +289,7 @@ export async function POST(req: NextRequest) {
 
     verifiedItems.push({
       productId: product.id,
+      variantId: variant?.id,
       name: cleanText(product.name, 120),
       quantity,
       unitPrice: canonicalUnitPrice,
@@ -259,9 +319,101 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Primary Supabase transactional RPC path
+  if (supabaseAdmin && (mode === "supabase" || mode === "hybrid")) {
+    try {
+      const { user } = await getAuthenticatedServerUser().catch(() => ({
+        supabase: null,
+        user: null,
+        isAdmin: false,
+      }));
+
+      // Generate a 256-bit random guest lookup secret; only its SHA-256 hash is stored in Postgres
+      const guestLookupToken = crypto.randomBytes(32).toString("base64url");
+      const guestTokenHash = crypto.createHash("sha256").update(guestLookupToken).digest("hex");
+
+      const { data: rpcRows, error: rpcErr } = await supabaseAdmin.rpc("place_order", {
+        p_payload: {
+          userId: user?.id ?? null,
+          idempotencyKey: idempotencyKey || null,
+          guestTokenHash,
+          customerName,
+          contact,
+          governorate: governorate || address.split(" - ")[0] || null,
+          address,
+          notes,
+          couponCode: couponCode || null,
+          items: verifiedItems.map((it) => ({
+            productId: it.productId,
+            variantId: it.variantId || null,
+            quantity: it.quantity,
+          })),
+        },
+      });
+
+      if (rpcErr) {
+        const msg = rpcErr.message || "Order failed.";
+        const status = /insufficient stock/i.test(msg) ? 409 : /unavailable|coupon|invalid/i.test(msg) ? 400 : 500;
+        logSecurityEvent("SUPABASE_PLACE_ORDER_REJECTED", { ip, reason: msg });
+        return NextResponse.json({ error: msg }, { status });
+      }
+
+      const row = (Array.isArray(rpcRows) ? rpcRows[0] : rpcRows) as Record<string, unknown>;
+      const orderId = String(row.out_order_id);
+      const orderNumber = String(row.out_order_number);
+      const isReplay = Boolean(row.out_idempotent_replay);
+
+      try {
+        revalidatePath("/");
+      } catch {}
+
+      logSecurityEvent(
+        "ORDER_CREATED",
+        {
+          backend: "supabase",
+          orderId,
+          orderNumber,
+          itemCount: verifiedItems.length,
+          subtotal: Number(row.out_subtotal),
+          grandTotal: Number(row.out_grand_total),
+          idempotentReplay: isReplay,
+          contactMasked: maskPii(contact),
+        },
+        "info",
+      );
+
+      return NextResponse.json(
+        {
+          orderId,
+          orderNumber,
+          guestLookupToken: isReplay ? undefined : guestLookupToken,
+          subtotal: Number(row.out_subtotal),
+          shippingFee: Number(row.out_shipping_fee),
+          codFee: Number(row.out_cod_fee),
+          discountAmount: Number(row.out_discount_amount),
+          grandTotal: Number(row.out_grand_total),
+          idempotentReplay: isReplay,
+          items: verifiedItems,
+        },
+        { status: isReplay ? 200 : 201 },
+      );
+    } catch (err) {
+      logSecurityEvent(
+        "ORDER_PERSISTENCE_ERROR",
+        { ip, backend: "supabase", reason: err instanceof Error ? err.message : "Unknown error" },
+        "error",
+      );
+      return NextResponse.json(
+        { error: "Could not save order at this time. Please try again." },
+        { status: 500 },
+      );
+    }
+  }
+
+  // Legacy Firebase path (only when NEXT_PUBLIC_DATA_BACKEND === 'firebase' or Supabase not yet configured)
   if (!db) {
     return NextResponse.json(
-      { error: "Firebase is not configured. Add your Firebase environment variables." },
+      { error: "Database backend is not configured. Check your Supabase or Firebase environment variables." },
       { status: 503 },
     );
   }
@@ -272,7 +424,12 @@ export async function POST(req: NextRequest) {
       contact,
       address,
       notes,
-      items: verifiedItems,
+      items: verifiedItems.map(({ productId, name, quantity, unitPrice }) => ({
+        productId,
+        name,
+        quantity,
+        unitPrice,
+      })),
       subtotal: serverSubtotal,
     };
 
@@ -285,6 +442,7 @@ export async function POST(req: NextRequest) {
     logSecurityEvent(
       "ORDER_CREATED",
       {
+        backend: "firebase",
         orderId: inquiry.id,
         itemCount: verifiedItems.length,
         subtotal: serverSubtotal,
@@ -306,6 +464,7 @@ export async function POST(req: NextRequest) {
       "ORDER_PERSISTENCE_ERROR",
       {
         ip,
+        backend: "firebase",
         reason: err instanceof Error ? err.message : "Unknown error",
       },
       "error",

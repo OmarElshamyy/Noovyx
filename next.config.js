@@ -13,7 +13,7 @@ const securityHeaders = [
       "font-src 'self' data: https:",
       "style-src 'self' 'unsafe-inline'",
       `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://va.vercel-scripts.com https://apis.google.com`,
-      `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com https://va.vercel-scripts.com https://vitals.vercel-insights.com${isDev ? " http: ws:" : ""}`,
+      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com https://va.vercel-scripts.com https://vitals.vercel-insights.com${isDev ? " http: ws:" : ""}`,
       ...(isDev ? [] : ["upgrade-insecure-requests"]),
     ].join("; "),
   },

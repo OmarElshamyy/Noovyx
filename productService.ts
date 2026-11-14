@@ -10,16 +10,20 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
+import { createClient } from "@supabase/supabase-js";
 import { db } from "./firebase";
+import { getSupabaseBrowserClient } from "./lib/supabase/client";
+import { getDataBackendMode, getSupabasePublishableKey, getSupabaseUrl } from "./lib/supabase/env";
 import { products as seedProducts } from "./products";
 import { sanitizeImageSrc } from "./storefrontConfig";
-import type { Product, ProductCategory } from "./types";
+import type { Product, ProductCategory, ProductVariant } from "./types";
 
 const PRODUCT_COLLECTION = "products";
 const STOREFRONT_SETTINGS_DOC = "storefront";
 const MAX_PRODUCT_QUERY_LIMIT = 200;
 
 export const CATALOG_STORAGE_KEY = "noovyx_catalog_state_v2";
+const SUPABASE_HYDRATION_CACHE_KEY = "noovyx_supabase_products_cache_v1";
 
 export interface CatalogState {
   overrides: Record<string, Record<string, unknown>>;
@@ -36,6 +40,24 @@ const allowedCategories: ProductCategory[] = [
   "DACs",
 ];
 
+const CATEGORY_LABEL_TO_ID: Record<ProductCategory, string> = {
+  IEMs: "iems",
+  Wireless: "wireless",
+  Cables: "cables",
+  "Ear tips": "ear-tips",
+  Cases: "cases",
+  DACs: "dacs",
+};
+
+const CATEGORY_ID_TO_LABEL: Record<string, ProductCategory> = {
+  iems: "IEMs",
+  wireless: "Wireless",
+  cables: "Cables",
+  "ear-tips": "Ear tips",
+  cases: "Cases",
+  dacs: "DACs",
+};
+
 function cleanText(value: unknown, fallback = "") {
   return typeof value === "string" ? value.trim() : fallback;
 }
@@ -43,6 +65,93 @@ function cleanText(value: unknown, fallback = "") {
 function cleanNumber(value: unknown, fallback = 0) {
   const num = typeof value === "number" ? value : Number(value);
   return Number.isFinite(num) ? num : fallback;
+}
+
+function categoryToId(category: ProductCategory): string {
+  return CATEGORY_LABEL_TO_ID[category] || "iems";
+}
+
+function categoryFromRow(categoryId: unknown, label?: unknown): ProductCategory {
+  if (typeof label === "string" && allowedCategories.includes(label as ProductCategory)) {
+    return label as ProductCategory;
+  }
+  const key = typeof categoryId === "string" ? categoryId.trim().toLowerCase() : "";
+  return CATEGORY_ID_TO_LABEL[key] || "IEMs";
+}
+
+function getSupabaseReadClient() {
+  if (typeof window !== "undefined") {
+    return getSupabaseBrowserClient();
+  }
+  const url = getSupabaseUrl();
+  const key = getSupabasePublishableKey();
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
+  });
+}
+
+function mapSupabaseProductRow(row: Record<string, unknown>): Product {
+  const rawImages = Array.isArray(row.product_images) ? row.product_images : [];
+  const sortedUrls = [...rawImages]
+    .sort((a, b) => Number((a as Record<string, unknown>).position ?? 0) - Number((b as Record<string, unknown>).position ?? 0))
+    .map((img) => sanitizeImageSrc(cleanText((img as Record<string, unknown>).url)))
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const rawVariants = Array.isArray(row.product_variants) ? row.product_variants : [];
+  const variants: ProductVariant[] = [...rawVariants]
+    .sort((a, b) => Number((a as Record<string, unknown>).position ?? 0) - Number((b as Record<string, unknown>).position ?? 0))
+    .map((v) => {
+      const vr = v as Record<string, unknown>;
+      const vStock = Math.max(0, Math.trunc(cleanNumber(vr.stock_quantity, 0)));
+      return {
+        id: cleanText(vr.id),
+        productId: cleanText(vr.product_id, cleanText(row.id)),
+        sku: cleanText(vr.sku) || undefined,
+        title: cleanText(vr.title),
+        options: (vr.options && typeof vr.options === "object" ? vr.options : {}) as Record<string, string>,
+        priceOverride: vr.price_override !== null && vr.price_override !== undefined ? cleanNumber(vr.price_override) : null,
+        stockQuantity: vStock,
+        inStock: typeof vr.in_stock === "boolean" ? vr.in_stock : vStock > 0,
+        isActive: vr.is_active !== false,
+        position: Math.trunc(cleanNumber(vr.position, 0)),
+      };
+    });
+
+  const stockQuantity = Math.max(0, Math.trunc(cleanNumber(row.stock_quantity, 0)));
+  const categoryObj = row.categories as Record<string, unknown> | null | undefined;
+  const category = categoryFromRow(row.category_id, categoryObj?.label);
+
+  return {
+    id: cleanText(row.id),
+    slug: cleanText(row.slug, cleanText(row.id)),
+    name: cleanText(row.name, "Untitled product"),
+    category,
+    price: Math.max(0, cleanNumber(row.price, 0)),
+    compareAtPrice:
+      row.compare_at_price !== null && row.compare_at_price !== undefined
+        ? cleanNumber(row.compare_at_price)
+        : null,
+    image: cleanText(row.image, "KZ").slice(0, 4).toUpperCase(),
+    imageUrl: sortedUrls[0] || "",
+    imageUrls: sortedUrls,
+    description: cleanText(row.description),
+    specs: Array.isArray(row.specs)
+      ? row.specs.map((s) => cleanText(s)).filter(Boolean).slice(0, 8)
+      : [],
+    inStock: typeof row.in_stock === "boolean" ? row.in_stock : stockQuantity > 0,
+    stockQuantity,
+    lowStockThreshold: Math.max(0, Math.trunc(cleanNumber(row.low_stock_threshold, 3))),
+    isActive: row.is_active !== false,
+    isArchived: Boolean(row.is_archived),
+    hasVariants: Boolean(row.has_variants),
+    variants: variants.length > 0 ? variants : undefined,
+    featured: Boolean(row.featured),
+  };
 }
 
 export function productFromData(id: string, data: Record<string, unknown>): Product {
@@ -197,18 +306,15 @@ function buildMergedCatalog(
 ): Product[] {
   const map = new Map<string, Product>();
 
-  // 1. Seed products from products.ts form the baseline catalog
   for (const seed of seedProducts) {
     map.set(seed.id, { ...seed });
   }
 
-  // 2. Overlay all products fetched from Firestore "products" collection (both isActive: true and isActive: false)
   for (const fp of firestoreProducts) {
     const existing = map.get(fp.id);
     map.set(fp.id, existing ? { ...existing, ...fp } : fp);
   }
 
-  // 3. Overlay catalogState.overrides (from /api/local-catalog and localStorage)
   for (const [id, overrideData] of Object.entries(catalogState.overrides)) {
     const existing = map.get(id);
     const mergedRaw = existing
@@ -217,7 +323,6 @@ function buildMergedCatalog(
     map.set(id, productFromData(id, mergedRaw));
   }
 
-  // 4. Remove any deleted products
   for (const delId of catalogState.deletedIds) {
     map.delete(delId);
   }
@@ -295,21 +400,68 @@ async function fetchAllFirestoreProducts(): Promise<Product[]> {
 }
 
 /**
- * Synchronous cached public products for initial render.
+ * Synchronous cached public products for initial client hydration before async fetch resolves.
  */
 export function getCachedPublicProducts(): Product[] {
+  const mode = getDataBackendMode();
+  if (mode === "supabase" && typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem(SUPABASE_HYDRATION_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Product[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((p) => p.isActive === true && !p.isArchived);
+        }
+      }
+    } catch {
+      // Fallback to seed snapshot during initial cold load
+    }
+    return seedProducts.filter((p) => p.isActive === true);
+  }
+
   const localState = getLocalCatalogState();
   return buildMergedCatalog([], localState).filter((product) => product.isActive === true);
 }
 
 /**
  * Loads all active public products for the storefront homepage.
- * Combines:
- * 1. seedProducts (from products.ts, updated locally by /api/local-catalog)
- * 2. Firestore "products" collection (both active and hidden docs)
- * 3. /api/local-catalog server state + browser localStorage
+ * In Supabase mode, PostgreSQL is the single authoritative source of truth.
  */
 export async function getPublicProducts(): Promise<Product[]> {
+  const mode = getDataBackendMode();
+
+  if (mode === "supabase" || mode === "hybrid") {
+    const supabase = getSupabaseReadClient();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          "id, slug, name, category_id, price, compare_at_price, image, description, specs, has_variants, stock_quantity, low_stock_threshold, in_stock, is_active, is_archived, featured, sort_order, categories(label), product_images(url, position), product_variants(id, product_id, sku, title, options, price_override, stock_quantity, in_stock, is_active, position)",
+        )
+        .eq("is_active", true)
+        .eq("is_archived", false)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true })
+        .limit(MAX_PRODUCT_QUERY_LIMIT);
+
+      if (!error && Array.isArray(data)) {
+        const mapped = data.map((row) => mapSupabaseProductRow(row as unknown as Record<string, unknown>));
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(SUPABASE_HYDRATION_CACHE_KEY, JSON.stringify(mapped));
+          } catch {}
+        }
+        return mapped;
+      }
+      if (mode === "supabase" && error) {
+        throw new Error(`Failed to load products from Supabase: ${error.message}`);
+      }
+    }
+    if (mode === "supabase") {
+      return seedProducts.filter((p) => p.isActive === true);
+    }
+  }
+
   const localState = getLocalCatalogState();
   const [serverState, firestoreProducts] = await Promise.all([
     fetchLocalServerCatalogState(),
@@ -327,9 +479,36 @@ export async function getPublicProducts(): Promise<Product[]> {
 }
 
 /**
- * Loads all products (both Active and Hidden) for the Admin Panel.
+ * Loads all non-archived products (both Active and Hidden) for the Admin Panel.
  */
 export async function getAdminProducts(): Promise<Product[]> {
+  const mode = getDataBackendMode();
+
+  if (mode === "supabase" || mode === "hybrid") {
+    const supabase = getSupabaseBrowserClient();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          "id, slug, name, category_id, price, compare_at_price, image, description, specs, has_variants, stock_quantity, low_stock_threshold, in_stock, is_active, is_archived, featured, sort_order, categories(label), product_images(url, position), product_variants(id, product_id, sku, title, options, price_override, stock_quantity, in_stock, is_active, position)",
+        )
+        .eq("is_archived", false)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false })
+        .limit(MAX_PRODUCT_QUERY_LIMIT);
+
+      if (error) {
+        throw new Error(`Failed to load admin catalog from Supabase: ${error.message}`);
+      }
+      if (Array.isArray(data)) {
+        return data.map((row) => mapSupabaseProductRow(row as unknown as Record<string, unknown>));
+      }
+    }
+    if (mode === "supabase") {
+      throw new Error("Supabase client is not configured.");
+    }
+  }
+
   const localState = getLocalCatalogState();
   const [serverState, firestoreProducts] = await Promise.all([
     fetchLocalServerCatalogState(),
@@ -353,18 +532,15 @@ export async function getAdminProducts(): Promise<Product[]> {
     remoteState,
   );
   setLocalCatalogState(combinedState);
-
-  // Sync to local server file (products.ts & local-catalog-state.json) automatically
   void persistToLocalServer(combinedState, firestoreProducts);
 
   return buildMergedCatalog(firestoreProducts, combinedState);
 }
 
 /**
- * Saves a product (including its isActive visibility and featured status) to:
- * 1. localStorage (instant cross-tab update)
- * 2. Local server (/api/local-catalog -> updates local-catalog-state.json & products.ts)
- * 3. Firestore products/{productId} & settings/storefront
+ * Saves a product cleanly. In Supabase mode:
+ * - Writes catalog attributes to public.products and gallery URLs to public.product_images.
+ * - Routes stock changes through transactional admin_adjust_stock RPC (recording stock_movements).
  */
 export async function saveProduct(product: Product): Promise<void> {
   const productId = (product.id || product.slug).trim();
@@ -372,6 +548,131 @@ export async function saveProduct(product: Product): Promise<void> {
     throw new Error("Product ID is required.");
   }
 
+  const mode = getDataBackendMode();
+
+  if (mode === "supabase" || mode === "hybrid") {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      throw new Error("Supabase is not configured.");
+    }
+
+    const plain = productToPlainObject({
+      ...product,
+      id: productId,
+      slug: product.slug || productId,
+    });
+    const desiredStock = Math.max(0, Math.trunc(Number(plain.stockQuantity) || 0));
+    const categoryId = categoryToId(plain.category as ProductCategory);
+
+    const { data: existing } = await supabase
+      .from("products")
+      .select("id, stock_quantity, has_variants")
+      .eq("id", productId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error: updateErr } = await supabase
+        .from("products")
+        .update({
+          slug: plain.slug,
+          name: plain.name,
+          category_id: categoryId,
+          price: plain.price,
+          compare_at_price: product.compareAtPrice ?? null,
+          image: plain.image,
+          description: plain.description,
+          specs: plain.specs,
+          low_stock_threshold: plain.lowStockThreshold,
+          is_active: plain.isActive,
+          featured: plain.featured,
+        })
+        .eq("id", productId);
+
+      if (updateErr) {
+        throw new Error(`Failed to update product in Supabase: ${updateErr.message}`);
+      }
+
+      if (!existing.has_variants && existing.stock_quantity !== desiredStock) {
+        const { error: stockErr } = await supabase.rpc("admin_adjust_stock", {
+          p_product_id: productId,
+          p_variant_id: null,
+          p_new_stock: desiredStock,
+          p_delta: null,
+          p_note: "Admin catalog product save",
+        });
+        if (stockErr) {
+          throw new Error(`Failed to record stock movement: ${stockErr.message}`);
+        }
+      }
+    } else {
+      const { error: insertErr } = await supabase.from("products").insert({
+        id: productId,
+        slug: plain.slug,
+        name: plain.name,
+        category_id: categoryId,
+        price: plain.price,
+        compare_at_price: product.compareAtPrice ?? null,
+        image: plain.image,
+        description: plain.description,
+        specs: plain.specs,
+        stock_quantity: 0,
+        low_stock_threshold: plain.lowStockThreshold,
+        is_active: plain.isActive,
+        is_archived: false,
+        featured: plain.featured,
+      });
+
+      if (insertErr) {
+        throw new Error(`Failed to create product in Supabase: ${insertErr.message}`);
+      }
+
+      if (desiredStock > 0) {
+        const { error: stockErr } = await supabase.rpc("admin_adjust_stock", {
+          p_product_id: productId,
+          p_variant_id: null,
+          p_new_stock: desiredStock,
+          p_delta: null,
+          p_note: "Initial stock on product creation",
+        });
+        if (stockErr) {
+          throw new Error(`Product created, but initial stock movement failed: ${stockErr.message}`);
+        }
+      }
+    }
+
+    // Sync gallery images cleanly
+    const urls = (plain.imageUrls as string[]) || [];
+    const { error: delImgErr } = await supabase
+      .from("product_images")
+      .delete()
+      .eq("product_id", productId);
+
+    if (delImgErr) {
+      throw new Error(`Failed to sync product gallery images: ${delImgErr.message}`);
+    }
+
+    if (urls.length > 0) {
+      const imageRows = urls.map((url, idx) => ({
+        product_id: productId,
+        url,
+        position: idx,
+      }));
+      const { error: insImgErr } = await supabase.from("product_images").insert(imageRows);
+      if (insImgErr) {
+        throw new Error(`Failed to insert product gallery images: ${insImgErr.message}`);
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      fetch("/api/revalidate", { method: "POST" }).catch(() => {});
+    }
+
+    if (mode === "supabase") {
+      return;
+    }
+  }
+
+  // Legacy Firebase path (preserved when NEXT_PUBLIC_DATA_BACKEND === "firebase" or "hybrid")
   const plainProduct = productToPlainObject({
     ...product,
     id: productId,
@@ -425,10 +726,18 @@ export async function saveProduct(product: Product): Promise<void> {
   }
 }
 
-/**
- * Batch-saves multiple products at once (used by Sync Catalog or Bulk Hide/Show).
- */
 export async function saveProductsBatch(productsList: Product[]): Promise<void> {
+  const mode = getDataBackendMode();
+
+  if (mode === "supabase" || mode === "hybrid") {
+    for (const prod of productsList) {
+      await saveProduct(prod);
+    }
+    if (mode === "supabase") {
+      return;
+    }
+  }
+
   const localState = getLocalCatalogState();
   const serverState = await fetchLocalServerCatalogState();
   const baseState = mergeTwoCatalogStates(localState, serverState);
@@ -490,6 +799,44 @@ export async function saveProductsBatch(productsList: Product[]): Promise<void> 
 export async function deleteProduct(productId: string): Promise<void> {
   const cleanId = productId.trim();
   if (!cleanId) return;
+
+  const mode = getDataBackendMode();
+
+  if (mode === "supabase" || mode === "hybrid") {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      throw new Error("Supabase is not configured.");
+    }
+
+    // Soft-archive if historical orders/movements reference this product (preserves referential history)
+    const [{ count: orderRefCount }, { count: moveRefCount }] = await Promise.all([
+      supabase.from("order_items").select("id", { count: "exact", head: true }).eq("product_id", cleanId),
+      supabase.from("stock_movements").select("id", { count: "exact", head: true }).eq("product_id", cleanId),
+    ]);
+
+    if ((orderRefCount ?? 0) > 0 || (moveRefCount ?? 0) > 0) {
+      const { error } = await supabase
+        .from("products")
+        .update({ is_archived: true, is_active: false })
+        .eq("id", cleanId);
+      if (error) {
+        throw new Error(`Failed to archive product: ${error.message}`);
+      }
+    } else {
+      const { error } = await supabase.from("products").delete().eq("id", cleanId);
+      if (error) {
+        throw new Error(`Failed to delete product: ${error.message}`);
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      fetch("/api/revalidate", { method: "POST" }).catch(() => {});
+    }
+
+    if (mode === "supabase") {
+      return;
+    }
+  }
 
   const localState = getLocalCatalogState();
   const serverState = await fetchLocalServerCatalogState();

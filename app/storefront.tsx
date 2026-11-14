@@ -2,11 +2,13 @@
 
 import React, { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PRODUCT_CATEGORIES, formatCurrency, products as seedProducts } from "../products";
-import { submitOrderInquiry } from "../orders";
+import { submitOrderInquiryDetailed, trackGuestOrder } from "../orders";
 import { CATALOG_STORAGE_KEY, getCachedPublicProducts, getPublicProducts } from "../productService";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import type { CartItem, Product, ProductCategory } from "../types";
+import { getSupabaseBrowserClient } from "../lib/supabase/client";
+import { getDataBackendMode } from "../lib/supabase/env";
+import type { CartItem, GuestOrderTrackingResult, Product, ProductCategory } from "../types";
 import { AnnouncementBar } from "./components/AnnouncementBar";
 import { SearchBar } from "./components/SearchBar";
 import { useRecentlyViewed, RecentlyViewedSection } from "./components/RecentlyViewed";
@@ -45,6 +47,8 @@ type CheckoutForm = {
 
 type SubmittedOrder = {
   orderId: string;
+  orderNumber?: string;
+  guestLookupToken?: string;
   items: CartItem[];
   subtotal: number;
   customerName: string;
@@ -107,16 +111,26 @@ function unlockBodyScroll() {
   if (count === 0) body.style.overflow = "";
 }
 
-export function Storefront() {
+export function Storefront({
+  initialCmsConfig,
+  initialProducts,
+}: {
+  initialCmsConfig?: StorefrontConfig;
+  initialProducts?: Product[];
+} = {}) {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("featured");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MenuTab>("all");
-  const [cmsConfig, setCmsConfig] = useState<StorefrontConfig>(DEFAULT_STOREFRONT_CONFIG);
+  const [cmsConfig, setCmsConfig] = useState<StorefrontConfig>(
+    () => initialCmsConfig || DEFAULT_STOREFRONT_CONFIG,
+  );
 
-  const [catalogProducts, setCatalogProducts] = useState<Product[]>(() => getCachedPublicProducts());
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(
+    () => initialProducts || getCachedPublicProducts(),
+  );
   const { recentProducts, trackView } = useRecentlyViewed(catalogProducts);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -210,8 +224,10 @@ export function Storefront() {
   useEffect(() => {
     let isMounted = true;
 
-    // Load full Storefront CMS Config from localStorage and Firestore
-    setCmsConfig(getCachedStorefrontConfig());
+    // Load full Storefront CMS Config without overwriting live SSR Supabase config with stale cache
+    if (!initialCmsConfig) {
+      setCmsConfig(getCachedStorefrontConfig());
+    }
     loadStorefrontConfig().then((loadedCfg) => {
       if (isMounted) setCmsConfig(loadedCfg);
     });
@@ -239,37 +255,71 @@ export function Storefront() {
     window.addEventListener("storage", handleStorageUpdate);
     window.addEventListener("focus", handleWindowFocus);
 
-    // Load customized hero image & playlist from Firestore or localStorage
-    if (typeof window !== "undefined") {
-      const savedHero = localStorage.getItem("kz_hero_image");
-      const savedTitle = localStorage.getItem("kz_hero_title");
-      if (savedHero) setHeroImage(savedHero);
-      if (savedTitle) setHeroTitle(savedTitle);
-    }
-    if (db) {
-      getDoc(doc(db, "settings", "storefront"))
-        .then((snap) => {
-          if (snap.exists() && isMounted) {
-            const data = snap.data();
-            if (Array.isArray(data.heroImages) && data.heroImages.length > 0) {
-              setHeroImages(data.heroImages);
-            } else if (data.heroImage) {
-              setHeroImages([data.heroImage]);
+    const mode = getDataBackendMode();
+    const supabaseClient = mode === "supabase" || mode === "hybrid" ? getSupabaseBrowserClient() : null;
+    const realtimeChannel = supabaseClient
+      ? supabaseClient
+          .channel("public-storefront-sync")
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "storefront_config" },
+            () => {
+              loadStorefrontConfig()
+                .then((loadedCfg) => {
+                  if (isMounted) setCmsConfig(loadedCfg);
+                })
+                .catch(() => {});
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "products" },
+            () => {
+              getPublicProducts()
+                .then((fresh) => {
+                  if (isMounted) setCatalogProducts(fresh.filter((p) => p.isActive === true));
+                })
+                .catch(() => {});
+            },
+          )
+          .subscribe()
+      : null;
+
+    // Legacy Firebase hero image loader (only when explicitly running Firebase backend)
+    if (mode === "firebase") {
+      if (typeof window !== "undefined") {
+        const savedHero = localStorage.getItem("kz_hero_image");
+        const savedTitle = localStorage.getItem("kz_hero_title");
+        if (savedHero) setHeroImage(savedHero);
+        if (savedTitle) setHeroTitle(savedTitle);
+      }
+      if (db) {
+        getDoc(doc(db, "settings", "storefront"))
+          .then((snap) => {
+            if (snap.exists() && isMounted) {
+              const data = snap.data();
+              if (Array.isArray(data.heroImages) && data.heroImages.length > 0) {
+                setHeroImages(data.heroImages);
+              } else if (data.heroImage) {
+                setHeroImages([data.heroImage]);
+              }
+              if (typeof data.shuffle === "boolean") {
+                setIsShuffle(data.shuffle);
+              }
+              if (typeof data.intervalSeconds === "number") {
+                setShuffleInterval(data.intervalSeconds * 1000);
+              }
+              if (data.heroImage) setHeroImage(data.heroImage);
+              if (data.heroProductName) setHeroTitle(data.heroProductName);
             }
-            if (typeof data.shuffle === "boolean") {
-              setIsShuffle(data.shuffle);
-            }
-            if (typeof data.intervalSeconds === "number") {
-              setShuffleInterval(data.intervalSeconds * 1000);
-            }
-            if (data.heroImage) setHeroImage(data.heroImage);
-            if (data.heroProductName) setHeroTitle(data.heroProductName);
-          }
-        })
-        .catch(() => {});
+          })
+          .catch(() => {});
+      }
     }
 
-    setCatalogProducts(getCachedPublicProducts());
+    if (!initialProducts) {
+      setCatalogProducts(getCachedPublicProducts());
+    }
     getPublicProducts()
       .then((loadedProducts) => {
         if (isMounted) {
@@ -277,7 +327,7 @@ export function Storefront() {
         }
       })
       .catch(() => {
-        if (isMounted) {
+        if (isMounted && !initialProducts) {
           setCatalogProducts(getCachedPublicProducts());
         }
       });
@@ -286,8 +336,11 @@ export function Storefront() {
       isMounted = false;
       window.removeEventListener("storage", handleStorageUpdate);
       window.removeEventListener("focus", handleWindowFocus);
+      if (supabaseClient && realtimeChannel) {
+        void supabaseClient.removeChannel(realtimeChannel);
+      }
     };
-  }, []);
+  }, [initialCmsConfig, initialProducts]);
 
   // Auto-shuffle / slideshow timer for top banner
   useEffect(() => {
@@ -421,22 +474,44 @@ export function Storefront() {
     const combinedAddress = `${form.city.trim()} - ${form.streetAddress.trim()}`.slice(0, 240);
 
     try {
-      const orderId = await submitOrderInquiry({
+      const result = await submitOrderInquiryDetailed({
         customerName: form.customerName.trim().slice(0, 80),
         contact: form.contact.trim().slice(0, 120),
+        governorate: form.city.trim().slice(0, 80),
         address: combinedAddress,
         notes: form.notes.trim().slice(0, 500),
         items: cart.map((item) => ({
           productId: item.product.id,
+          variantId: item.variant?.id,
           name: item.product.name,
           quantity: item.quantity,
-          unitPrice: item.product.price,
+          unitPrice: item.variant?.priceOverride ?? item.product.price,
         })),
         subtotal,
       });
 
+      const displayId = result.orderNumber || result.orderId;
+
+      if (typeof window !== "undefined" && result.orderNumber && result.guestLookupToken) {
+        try {
+          const existingRaw = localStorage.getItem("noovyx_guest_orders_v1");
+          const existing = existingRaw ? (JSON.parse(existingRaw) as unknown[]) : [];
+          const next = [
+            {
+              orderNumber: result.orderNumber,
+              trackingToken: result.guestLookupToken,
+              createdAt: new Date().toISOString(),
+            },
+            ...(Array.isArray(existing) ? existing : []),
+          ].slice(0, 5);
+          localStorage.setItem("noovyx_guest_orders_v1", JSON.stringify(next));
+        } catch {}
+      }
+
       setSubmittedOrder({
-        orderId,
+        orderId: displayId,
+        orderNumber: result.orderNumber,
+        guestLookupToken: result.guestLookupToken,
         items: [...cart],
         subtotal,
         customerName: form.customerName.trim(),
@@ -717,6 +792,7 @@ export function Storefront() {
         <RecentlyViewedSection
           products={recentProducts}
           onViewProduct={handleViewProduct}
+          config={cmsConfig.recentlyViewed}
         />
 
         {/* 13. Support Strip & Final Call to Action */}
@@ -1899,13 +1975,25 @@ function OrderConfirmationView({
         <div className="request-id-details">
           <span className="id-label">ORDER REQUEST ID</span>
           <code className="id-code">#{order.orderId}</code>
+          {order.guestLookupToken ? (
+            <div style={{ marginTop: "8px", fontSize: "0.78rem", color: "#94a3b8" }}>
+              <span>PRIVATE TRACKING KEY: </span>
+              <code style={{ color: "#00e5ff", wordBreak: "break-all" }}>{order.guestLookupToken}</code>
+            </div>
+          ) : null}
         </div>
         <button
           className="ghost-button copy-id-btn"
           type="button"
-          onClick={() => onCopyOrderId(order.orderId)}
+          onClick={() =>
+            onCopyOrderId(
+              order.guestLookupToken
+                ? `${order.orderId} (Key: ${order.guestLookupToken})`
+                : order.orderId,
+            )
+          }
         >
-          {copiedOrderId ? "✓ Copied!" : "Copy ID"}
+          {copiedOrderId ? "✓ Copied!" : "Copy ID & Key"}
         </button>
       </div>
 
@@ -1999,6 +2087,41 @@ function OrderConfirmationView({
 }
 
 function EmptyCartView({ onClose }: { onClose: () => void }) {
+  const [orderNum, setOrderNum] = useState("");
+  const [trackKey, setTrackKey] = useState("");
+  const [trackResult, setTrackResult] = useState<GuestOrderTrackingResult | null>(null);
+  const [trackError, setTrackError] = useState("");
+  const [isTracking, setIsTracking] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("noovyx_guest_orders_v1");
+      if (raw) {
+        const list = JSON.parse(raw) as { orderNumber?: string; trackingToken?: string }[];
+        if (Array.isArray(list) && list[0]?.orderNumber && list[0]?.trackingToken) {
+          setOrderNum(list[0].orderNumber);
+          setTrackKey(list[0].trackingToken);
+        }
+      }
+    } catch {}
+  }, []);
+
+  async function handleTrackLookup(e: FormEvent) {
+    e.preventDefault();
+    if (!orderNum.trim() || !trackKey.trim()) return;
+    setIsTracking(true);
+    setTrackError("");
+    setTrackResult(null);
+    try {
+      const res = await trackGuestOrder(orderNum, trackKey);
+      setTrackResult(res);
+    } catch (err) {
+      setTrackError(err instanceof Error ? err.message : "Could not locate order.");
+    } finally {
+      setIsTracking(false);
+    }
+  }
+
   return (
     <div className="empty-checkout-view">
       <div className="empty-cart-icon">🎧</div>
@@ -2019,6 +2142,60 @@ function EmptyCartView({ onClose }: { onClose: () => void }) {
       >
         BROWSE CATALOG
       </button>
+
+      <div
+        style={{
+          marginTop: "24px",
+          width: "100%",
+          maxWidth: "420px",
+          padding: "16px",
+          borderRadius: "12px",
+          background: "rgba(10, 16, 30, 0.72)",
+          border: "1px solid rgba(148, 163, 184, 0.2)",
+          textAlign: "left",
+        }}
+      >
+        <p style={{ fontSize: "0.75rem", letterSpacing: "0.08em", color: "var(--cyan)", fontWeight: 700, marginBottom: "8px" }}>
+          TRACK GUEST ORDER STATUS
+        </p>
+        <form onSubmit={handleTrackLookup} style={{ display: "grid", gap: "8px" }}>
+          <input
+            type="text"
+            placeholder="Order Number (e.g. NX-1001)"
+            value={orderNum}
+            onChange={(e) => setOrderNum(e.target.value)}
+            style={{ padding: "8px 10px", borderRadius: "8px", background: "#05070d", border: "1px solid rgba(148,163,184,0.25)", color: "#f8fafc", fontSize: "0.85rem" }}
+          />
+          <input
+            type="password"
+            placeholder="Private Tracking Key"
+            value={trackKey}
+            onChange={(e) => setTrackKey(e.target.value)}
+            style={{ padding: "8px 10px", borderRadius: "8px", background: "#05070d", border: "1px solid rgba(148,163,184,0.25)", color: "#f8fafc", fontSize: "0.85rem" }}
+          />
+          <button type="submit" className="ghost-button" disabled={isTracking}>
+            {isTracking ? "Checking..." : "Check Order Status"}
+          </button>
+        </form>
+        {trackError ? (
+          <p style={{ color: "#f87171", fontSize: "0.8rem", marginTop: "8px" }}>{trackError}</p>
+        ) : null}
+        {trackResult ? (
+          <div style={{ marginTop: "10px", fontSize: "0.82rem", color: "#cbd5e1", display: "grid", gap: "4px" }}>
+            <div>
+              <strong>{trackResult.orderNumber}</strong> — Status:{" "}
+              <strong style={{ color: "var(--cyan)", textTransform: "uppercase" }}>{trackResult.status}</strong>
+            </div>
+            <div>
+              Recipient: {trackResult.customerMasked} ({trackResult.contactMasked})
+            </div>
+            <div>Subtotal: {formatCurrency(trackResult.subtotal)}</div>
+            <div style={{ fontSize: "0.76rem", color: "#94a3b8" }}>
+              {trackResult.items.map((it) => `${it.quantity}× ${it.name}`).join(" • ")}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

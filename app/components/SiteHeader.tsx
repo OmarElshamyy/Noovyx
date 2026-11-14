@@ -114,6 +114,8 @@ export function SiteHeader({
     }, 80);
   }
 
+  const showSearch = headerConfig.showSearch !== false;
+
   return (
     <>
       <header className="kz-header-wrapper">
@@ -159,7 +161,8 @@ export function SiteHeader({
             </nav>
 
             <div className="kz-header-right">
-              <div className="kz-search-wrapper" ref={searchContainerRef}>
+              {showSearch && (
+                <div className="kz-search-wrapper" ref={searchContainerRef}>
                 <div className="kz-search-bar">
                   <span className="kz-search-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -238,19 +241,22 @@ export function SiteHeader({
                   </div>
                 )}
               </div>
+              )}
 
-              <button
-                className="kz-mobile-search-btn"
-                type="button"
-                onClick={() => setIsMobileSearchOpen((prev) => !prev)}
-                aria-label="Toggle mobile search"
-                aria-expanded={isMobileSearchOpen}
-              >
-                <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-              </button>
+              {showSearch && (
+                <button
+                  className="kz-mobile-search-btn"
+                  type="button"
+                  onClick={() => setIsMobileSearchOpen((prev) => !prev)}
+                  aria-label="Toggle mobile search"
+                  aria-expanded={isMobileSearchOpen}
+                >
+                  <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </button>
+              )}
 
               <button
                 className="kz-action-btn kz-cart-trigger"
@@ -270,7 +276,7 @@ export function SiteHeader({
           </div>
         </div>
 
-        {isMobileSearchOpen && (
+        {showSearch && isMobileSearchOpen && (
           <div className="kz-mobile-search-bar">
             <div className="kz-mobile-search-inner">
               <input

@@ -475,10 +475,31 @@ export function AdminHomepageEditor({
                   editTab: "footer" as CmsSubTab,
                 },
                 {
+                  label: "Recently Viewed History",
+                  desc: `"${config.recentlyViewed?.title || "Recently Viewed"}" (after 2+ views)`,
+                  enabled: config.recentlyViewed?.enabled !== false,
+                  onToggle: (v: boolean) =>
+                    onChange({
+                      ...config,
+                      recentlyViewed: {
+                        ...(config.recentlyViewed || DEFAULT_STOREFRONT_CONFIG.recentlyViewed!),
+                        enabled: v,
+                      },
+                    }),
+                  editTab: "sections" as CmsSubTab,
+                },
+                {
                   label: "Final Call-To-Action Banner",
                   desc: `"${config.finalCta.title}"`,
                   enabled: config.finalCta.enabled,
                   onToggle: (v: boolean) => updateSection("finalCta", { enabled: v }),
+                  editTab: "footer" as CmsSubTab,
+                },
+                {
+                  label: "Site Footer",
+                  desc: `${config.footer.brandName || "Noovyx"} footer & links`,
+                  enabled: config.footer.enabled !== false,
+                  onToggle: (v: boolean) => updateSection("footer", { enabled: v }),
                   editTab: "footer" as CmsSubTab,
                 },
               ].map((sec) => (
@@ -1115,9 +1136,19 @@ export function AdminHomepageEditor({
 
           {/* Brand Logo & Header Settings */}
           <div style={cardStyle}>
-            <h3 style={{ marginTop: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
-              🏷️ Header Brand Identity, Search & WhatsApp Support
-            </h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
+              <h3 style={{ margin: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
+                🏷️ Header Brand Identity, Search & WhatsApp Support
+              </h3>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "white", fontWeight: 700, margin: 0, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={config.header.showSearch !== false}
+                  onChange={(e) => updateSection("header", { showSearch: e.target.checked })}
+                />
+                <span>Show Search Bar</span>
+              </label>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px", marginBottom: "14px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Brand Icon Letters
@@ -2006,6 +2037,83 @@ export function AdminHomepageEditor({
               ))}
             </div>
           </div>
+          {/* Recently Viewed History Section */}
+          <div style={cardStyle}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
+              <h3 style={{ margin: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
+                🕘 Recently Viewed History Section
+              </h3>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "white", fontWeight: 700, margin: 0, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={config.recentlyViewed?.enabled !== false}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      recentlyViewed: {
+                        ...(config.recentlyViewed || DEFAULT_STOREFRONT_CONFIG.recentlyViewed!),
+                        enabled: e.target.checked,
+                      },
+                    })
+                  }
+                />
+                <span>Show Recently Viewed Section</span>
+              </label>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px", gap: "12px" }}>
+              <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
+                Kicker Label
+                <input
+                  style={{ ...inputStyle, marginTop: "4px" }}
+                  value={config.recentlyViewed?.kicker || "Your history"}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      recentlyViewed: {
+                        ...(config.recentlyViewed || DEFAULT_STOREFRONT_CONFIG.recentlyViewed!),
+                        kicker: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
+                Section Title
+                <input
+                  style={{ ...inputStyle, marginTop: "4px" }}
+                  value={config.recentlyViewed?.title || "Recently Viewed"}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      recentlyViewed: {
+                        ...(config.recentlyViewed || DEFAULT_STOREFRONT_CONFIG.recentlyViewed!),
+                        title: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </label>
+              <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
+                Max Items
+                <input
+                  type="number"
+                  min={2}
+                  max={12}
+                  style={{ ...inputStyle, marginTop: "4px" }}
+                  value={config.recentlyViewed?.maxItems || 6}
+                  onChange={(e) =>
+                    onChange({
+                      ...config,
+                      recentlyViewed: {
+                        ...(config.recentlyViewed || DEFAULT_STOREFRONT_CONFIG.recentlyViewed!),
+                        maxItems: Math.max(2, Math.min(12, Number(e.target.value) || 6)),
+                      },
+                    })
+                  }
+                />
+              </label>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2808,9 +2916,19 @@ export function AdminHomepageEditor({
 
           {/* Site Footer */}
           <div style={cardStyle}>
-            <h3 style={{ marginTop: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
-              🦶 Site Footer Content
-            </h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
+              <h3 style={{ margin: 0, color: "var(--cyan)", fontSize: "1.08rem" }}>
+                🦶 Site Footer Content
+              </h3>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", color: "white", fontWeight: 700, margin: 0, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={config.footer.enabled !== false}
+                  onChange={(e) => updateSection("footer", { enabled: e.target.checked })}
+                />
+                <span>Show Site Footer</span>
+              </label>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "12px", marginBottom: "12px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Brand Mark

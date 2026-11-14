@@ -19,8 +19,10 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
+import { getSupabaseBrowserClient } from "../../lib/supabase/client";
+import { getDataBackendMode } from "../../lib/supabase/env";
+import { uploadImageToSupabaseStorage } from "../../lib/supabase/storage";
 import {
-  deleteOrder,
   getAdminOrders,
   updateOrderStatus,
 } from "../../orderService";
@@ -301,8 +303,17 @@ async function compressImageFile(file: File): Promise<string> {
   });
 }
 
+type AdminSessionUser = {
+  uid: string;
+  email: string | null;
+  provider: "supabase" | "firebase";
+  firebaseUser?: User;
+  appMetadata?: Record<string, unknown>;
+};
+
 export default function AdminPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const backendMode = getDataBackendMode();
+  const [user, setUser] = useState<AdminSessionUser | null>(null);
   const [adminState, setAdminState] = useState<"checking" | "claim" | "document" | "unknown">("checking");
   const [activeTab, setActiveTab] = useState<AdminTab>("homepage");
   const [cmsConfig, setCmsConfig] = useState<StorefrontConfig>(DEFAULT_STOREFRONT_CONFIG);
@@ -358,16 +369,15 @@ export default function AdminPage() {
 
   const hasAdminAccess = adminState === "claim" || adminState === "document";
 
-  // Load full Homepage CMS configuration only after admin authorization, and sync to server/Firestore
+  // Load full Homepage CMS configuration only after admin authorization
   useEffect(() => {
     if (!user || !hasAdminAccess) return;
     loadStorefrontConfig()
       .then((loaded) => {
         setCmsConfig(loaded);
-        void saveStorefrontConfig(loaded);
       })
       .catch(() => {});
-  }, [hasAdminAccess, user]);
+  }, [backendMode, hasAdminAccess, user]);
 
   async function handleSaveCmsConfig(nextConfig?: StorefrontConfig) {
     if (!hasAdminAccess) {
@@ -398,7 +408,7 @@ export default function AdminPage() {
       if (savedHero) setBannerImage(savedHero);
       if (savedTitle) setBannerProductName(savedTitle);
     }
-    if (db) {
+    if (backendMode === "firebase" && db) {
       getDoc(doc(db, "settings", "storefront"))
         .then((snap) => {
           if (snap.exists()) {
@@ -424,7 +434,7 @@ export default function AdminPage() {
         })
         .catch(() => {});
     }
-  }, [hasAdminAccess, user]);
+  }, [backendMode, hasAdminAccess, user]);
 
   // Admin banner preview slideshow rotation
   useEffect(() => {
@@ -488,7 +498,7 @@ export default function AdminPage() {
         localStorage.setItem("kz_hero_image", primaryImage);
         localStorage.setItem("kz_hero_title", primaryTitle);
       }
-      if (db) {
+      if (backendMode === "firebase" && db) {
         await setDoc(
           doc(db, "settings", "storefront"),
           {
@@ -528,7 +538,13 @@ export default function AdminPage() {
       cmsConfig.trust.enabled !== nextConfig.trust.enabled ||
       cmsConfig.blog.enabled !== nextConfig.blog.enabled ||
       cmsConfig.supportStrip.enabled !== nextConfig.supportStrip.enabled ||
-      cmsConfig.finalCta.enabled !== nextConfig.finalCta.enabled;
+      (cmsConfig.recentlyViewed?.enabled !== false) !== (nextConfig.recentlyViewed?.enabled !== false) ||
+      cmsConfig.finalCta.enabled !== nextConfig.finalCta.enabled ||
+      (cmsConfig.footer.enabled !== false) !== (nextConfig.footer.enabled !== false) ||
+      (cmsConfig.header.showSearch !== false) !== (nextConfig.header.showSearch !== false) ||
+      JSON.stringify(cmsConfig.header.navLinks) !== JSON.stringify(nextConfig.header.navLinks) ||
+      JSON.stringify(cmsConfig.header.drawerCategories) !== JSON.stringify(nextConfig.header.drawerCategories) ||
+      JSON.stringify(cmsConfig.catalogSection.categories) !== JSON.stringify(nextConfig.catalogSection.categories);
 
     setCmsConfig(nextConfig);
     if (cmsAutoSaveTimerRef.current) {
@@ -545,7 +561,9 @@ export default function AdminPage() {
         });
     } else {
       cmsAutoSaveTimerRef.current = setTimeout(() => {
-        void saveStorefrontConfig(nextConfig);
+        saveStorefrontConfig(nextConfig).catch((err) => {
+          showToast("error", err instanceof Error ? err.message : "Failed to sync storefront changes.");
+        });
       }, 300);
     }
   }
@@ -689,9 +707,23 @@ export default function AdminPage() {
     await Promise.all([refreshProducts(), refreshOrders()]);
   }, [refreshOrders, refreshProducts]);
 
-  const refreshAdminState = useCallback(async (currentUser: User) => {
+  const refreshAdminState = useCallback(async (currentUser: AdminSessionUser) => {
     try {
-      const token = await getIdTokenResult(currentUser, true);
+      if (currentUser.provider === "supabase") {
+        const meta = currentUser.appMetadata || {};
+        if (meta.role === "admin" || meta.is_admin === true) {
+          setAdminState("claim");
+        } else {
+          setAdminState("unknown");
+        }
+        return;
+      }
+
+      if (!currentUser.firebaseUser) {
+        setAdminState("unknown");
+        return;
+      }
+      const token = await getIdTokenResult(currentUser.firebaseUser, true);
       if (token.claims.admin === true) {
         setAdminState("claim");
         return;
@@ -712,6 +744,64 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    if (backendMode === "supabase" || backendMode === "hybrid") {
+      const supabase = getSupabaseBrowserClient();
+      if (supabase) {
+        let active = true;
+        supabase.auth
+          .getUser()
+          .then(({ data }) => {
+            if (!active) return;
+            if (data.user) {
+              const mapped: AdminSessionUser = {
+                uid: data.user.id,
+                email: data.user.email ?? null,
+                provider: "supabase",
+                appMetadata: (data.user.app_metadata || {}) as Record<string, unknown>,
+              };
+              setUser(mapped);
+              void refreshAdminState(mapped);
+            } else {
+              setUser(null);
+              setAdminState("checking");
+            }
+            setIsLoading(false);
+          })
+          .catch(() => {
+            if (active) setIsLoading(false);
+          });
+
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (!active) return;
+          if (session?.user) {
+            const mapped: AdminSessionUser = {
+              uid: session.user.id,
+              email: session.user.email ?? null,
+              provider: "supabase",
+              appMetadata: (session.user.app_metadata || {}) as Record<string, unknown>,
+            };
+            setUser(mapped);
+            void refreshAdminState(mapped);
+          } else {
+            setUser(null);
+            setAdminState("checking");
+          }
+        });
+
+        return () => {
+          active = false;
+          subscription.unsubscribe();
+        };
+      }
+      if (backendMode === "supabase") {
+        setIsLoading(false);
+        showToast("error", "Supabase Auth is not configured.");
+        return;
+      }
+    }
+
     if (!auth) {
       setIsLoading(false);
       showToast("error", "Firebase Auth is not configured.");
@@ -719,25 +809,60 @@ export default function AdminPage() {
     }
 
     return onAuthStateChanged(auth, (nextUser) => {
-      setUser(nextUser);
       if (nextUser) {
-        refreshAdminState(nextUser);
+        const mapped: AdminSessionUser = {
+          uid: nextUser.uid,
+          email: nextUser.email,
+          provider: "firebase",
+          firebaseUser: nextUser,
+        };
+        setUser(mapped);
+        void refreshAdminState(mapped);
       } else {
+        setUser(null);
         setAdminState("checking");
       }
       setIsLoading(false);
     });
-  }, [refreshAdminState, showToast]);
+  }, [backendMode, refreshAdminState, showToast]);
 
   useEffect(() => {
     if (!user || !hasAdminAccess) return;
     refreshAdminData();
   }, [hasAdminAccess, refreshAdminData, user]);
 
+  // Real-time incoming order feed via Supabase Realtime when active
+  useEffect(() => {
+    if (!user || !hasAdminAccess || user.provider !== "supabase") return;
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel("admin-orders-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        () => {
+          void refreshOrders();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [hasAdminAccess, refreshOrders, user]);
+
   async function handleAdminSignOut() {
     try {
       await fetch("/api/admin-gate", { method: "DELETE" });
     } catch {}
+    if (backendMode === "supabase" || backendMode === "hybrid") {
+      const supabase = getSupabaseBrowserClient();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    }
     if (auth) {
       await signOut(auth);
     }
@@ -746,7 +871,6 @@ export default function AdminPage() {
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!auth) return;
 
     const now = Date.now();
     if (loginLockedUntil > now) {
@@ -756,7 +880,22 @@ export default function AdminPage() {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (backendMode === "supabase" || backendMode === "hybrid") {
+        const supabase = getSupabaseBrowserClient();
+        if (!supabase) {
+          throw new Error("Supabase is not configured.");
+        }
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) {
+          throw error;
+        }
+      } else {
+        if (!auth) return;
+        await signInWithEmailAndPassword(auth, email.trim(), password);
+      }
       setPassword("");
       setFailedLoginCount(0);
       setLoginLockedUntil(0);
@@ -853,11 +992,20 @@ export default function AdminPage() {
     if (!files || files.length === 0) return;
     try {
       const newUrls: string[] = [];
+      const folder = editingProduct.id || editingProduct.slug || slugify(editingProduct.name) || "catalog";
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (!file.type.startsWith("image/")) continue;
-        const dataUrl = await compressImageFile(file);
-        newUrls.push(dataUrl);
+        if (backendMode === "supabase" || backendMode === "hybrid") {
+          const { publicUrl } = await uploadImageToSupabaseStorage(file, {
+            bucket: "product-images",
+            folder,
+          });
+          newUrls.push(publicUrl);
+        } else {
+          const dataUrl = await compressImageFile(file);
+          newUrls.push(dataUrl);
+        }
       }
 
       if (newUrls.length > 0) {
@@ -869,11 +1017,27 @@ export default function AdminPage() {
             imageUrls: combined,
           };
         });
-        showToast("success", `Added ${newUrls.length} image(s).`);
+        showToast(
+          "success",
+          backendMode === "supabase"
+            ? `Uploaded ${newUrls.length} image(s) to Supabase Storage.`
+            : `Added ${newUrls.length} image(s).`,
+        );
       }
-    } catch {
-      showToast("error", "Error processing image file.");
+    } catch (err) {
+      showToast("error", err instanceof Error ? err.message : "Error processing image file.");
     }
+  }
+
+  async function handleCmsImageUpload(file: File): Promise<string> {
+    if (backendMode === "supabase" || backendMode === "hybrid") {
+      const { publicUrl } = await uploadImageToSupabaseStorage(file, {
+        bucket: "cms-assets",
+        folder: "storefront",
+      });
+      return publicUrl;
+    }
+    return compressImageFile(file);
   }
 
   function addUrlImage() {
@@ -1064,15 +1228,56 @@ export default function AdminPage() {
     }
   }
 
-  async function handleDeleteOrder(orderId: string) {
-    if (!window.confirm("Delete this order? This cannot be undone.")) return;
+  async function handleCancelOrder(orderId: string) {
+    if (!window.confirm("Cancel this order and restore item stock? Order history will be preserved.")) return;
     try {
-      await deleteOrder(orderId);
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      showToast("success", "Order deleted.");
+      await updateOrderStatus(orderId, "cancelled", "Cancelled from Admin Panel");
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o)));
+      await refreshProducts();
+      showToast("success", "Order cancelled & inventory restored.");
     } catch (error) {
-      showToast("error", error instanceof Error ? error.message : "Could not delete order.");
+      showToast("error", error instanceof Error ? error.message : "Could not cancel order.");
     }
+  }
+
+  function exportBrowserLocalStorageSnapshot() {
+    if (typeof window === "undefined") return;
+    const keys = [
+      "noovyx_catalog_state_v2",
+      "noovyx_catalog_state_v1",
+      "noovyx_storefront_cms_config_v2",
+      "kz_storefront_cms_config_v1",
+      "noovyx_storefront_cms_updated_at_v2",
+      "kz_hero_image",
+      "kz_hero_title",
+      "kz_recently_viewed",
+    ];
+    const entries: Record<string, unknown> = {};
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (raw !== null) {
+        try {
+          entries[key] = JSON.parse(raw);
+        } catch {
+          entries[key] = raw;
+        }
+      }
+    }
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      origin: window.location.origin,
+      entries,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `browser-localstorage-export-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("success", "Exported browser localStorage snapshot for ETL reconciliation.");
   }
 
   function copyToClipboard(text: string, label: string) {
@@ -1408,6 +1613,9 @@ export default function AdminPage() {
             onClick={() => startNewProduct("IEMs")}
           >
             + Quick Add Product
+          </button>
+          <button className="ghost-button" type="button" onClick={exportBrowserLocalStorageSnapshot}>
+            Export Browser State
           </button>
           <button className="ghost-button" type="button" onClick={refreshAdminData}>
             Refresh Data
@@ -2207,8 +2415,19 @@ export default function AdminPage() {
                     </td>
                     <td>
                       <strong style={{ color: "var(--cyan)", fontSize: "1.05rem" }}>
-                        {formatCurrency(order.subtotal)}
+                        {formatCurrency(order.grandTotal ?? order.subtotal)}
                       </strong>
+                      {order.orderNumber ? (
+                        <span className="table-muted">{order.orderNumber}</span>
+                      ) : null}
+                      {order.isLegacyImport ? (
+                        <span
+                          className="table-muted"
+                          title={`Unrecoverable historical fields: ${(order.legacyUnrecoverableFields || []).join(", ")}`}
+                        >
+                          Legacy import (subtotal only)
+                        </span>
+                      ) : null}
                     </td>
                     <td>
                       <select
@@ -2237,9 +2456,10 @@ export default function AdminPage() {
                       <button
                         className="text-button"
                         type="button"
-                        onClick={() => handleDeleteOrder(order.id)}
+                        disabled={order.status === "cancelled"}
+                        onClick={() => handleCancelOrder(order.id)}
                       >
-                        Delete
+                        {order.status === "cancelled" ? "Cancelled" : "Cancel"}
                       </button>
                     </td>
                   </tr>
@@ -2265,7 +2485,7 @@ export default function AdminPage() {
           products={products}
           onToggleProductFeatured={toggleFeatured}
           onToggleProductActive={toggleActive}
-          onCompressImage={compressImageFile}
+          onCompressImage={handleCmsImageUpload}
           showToast={showToast}
         />
       )}

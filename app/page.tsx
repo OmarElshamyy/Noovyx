@@ -1,9 +1,14 @@
 import { Storefront } from "./storefront";
 import { products as defaultProducts } from "../products";
+import { getPublicProducts } from "../productService";
+import { DEFAULT_STOREFRONT_CONFIG, loadStorefrontConfig } from "../storefrontConfig";
+import type { Product } from "../types";
 
-function buildStructuredData() {
+export const dynamic = "force-dynamic";
+
+function buildStructuredData(liveProducts: Product[]) {
   const baseUrl = "https://noovyx.com";
-  const activeProducts = defaultProducts.filter((p) => p.isActive !== false);
+  const activeProducts = liveProducts.filter((p) => p.isActive !== false);
 
   const onlineStoreSchema = {
     "@type": ["OnlineStore", "Organization"],
@@ -133,8 +138,14 @@ function buildStructuredData() {
   };
 }
 
-export default function Home() {
-  const jsonLd = buildStructuredData();
+export default async function Home() {
+  const fallbackProducts = defaultProducts.filter((p) => p.isActive !== false);
+  const [initialCmsConfig, initialProducts] = await Promise.all([
+    loadStorefrontConfig().catch(() => DEFAULT_STOREFRONT_CONFIG),
+    getPublicProducts().catch(() => fallbackProducts),
+  ]);
+  const activeProducts = initialProducts.filter((p) => p.isActive !== false);
+  const jsonLd = buildStructuredData(activeProducts);
 
   return (
     <>
@@ -144,7 +155,7 @@ export default function Home() {
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <Storefront />
+      <Storefront initialCmsConfig={initialCmsConfig} initialProducts={activeProducts} />
     </>
   );
 }

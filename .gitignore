@@ -9,7 +9,10 @@ firebase-debug.log
 *.pem
 *.key
 *.bak
+# Keep version-controlled SQL migrations and database schemas tracked
 *.sql
+!supabase/**/*.sql
+!database/**/*.sql
 *.zip
 npm-debug.log*
 yarn-debug.log*
@@ -19,3 +22,5 @@ yarn-error.log*
 scratch_*
 kz_home*.html
 pnpm-workspace.yaml
+
+backups/
