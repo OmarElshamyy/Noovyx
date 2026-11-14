@@ -251,69 +251,61 @@ export function AdminHomepageEditor({
   };
 
   return (
-    <section className="admin-card" style={{ padding: "24px" }}>
+    <section className="admin-card cms-editor-root">
       {/* TOP STICKY ACTION BAR */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "16px",
-          padding: "16px 20px",
-          background: "linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(139, 92, 246, 0.12))",
-          border: "1px solid rgba(0, 229, 255, 0.35)",
-          borderRadius: "12px",
-          marginBottom: "22px",
-        }}
-      >
-        <div>
-          <span
-            className="category-badge"
-            style={{ color: "var(--cyan)", borderColor: "rgba(0, 229, 255, 0.4)", marginBottom: "6px" }}
-          >
-            🎛️ Full Storefront CMS & Visual Builder
+      <div className="cms-sticky-header">
+        <div className="cms-sticky-header-copy">
+          <span className="admin-status-pill" style={{ marginBottom: "8px" }}>
+            <span className="admin-status-dot" aria-hidden="true" />
+            Storefront CMS &amp; Visual Builder
           </span>
-          <h2 style={{ fontSize: "1.35rem", margin: "2px 0", color: "white" }}>
-            Homepage Control Center — Edit Everything Live
-          </h2>
+          <h2>Homepage Control Center</h2>
           <p className="field-help" style={{ margin: 0 }}>
-            Customize every section, banner, text heading, navigation link, customer review, blog guide, and footer detail on the homepage.
+            Toggle section visibility globally and customize banners, links, reviews, guides, and footer copy.
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+        <div className="cms-header-actions">
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="ghost-button"
-            style={{ textDecoration: "none", fontSize: "0.84rem", padding: "8px 14px" }}
+            className="ghost-button admin-icon-btn"
           >
-            👁️ View Live Homepage ↗
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Preview</span>
           </a>
 
           <button
             type="button"
-            className="ghost-button"
-            style={{ fontSize: "0.84rem", padding: "8px 14px" }}
+            className="ghost-button admin-icon-btn"
             onClick={exportCmsJson}
           >
-            📥 Backup JSON
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>Backup</span>
           </button>
 
-          <label
-            className="ghost-button"
-            style={{ fontSize: "0.84rem", padding: "8px 14px", cursor: "pointer", margin: 0 }}
-          >
-            📤 Restore JSON
+          <label className="ghost-button admin-icon-btn" style={{ cursor: "pointer", margin: 0 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>Restore</span>
             <input type="file" accept=".json" style={{ display: "none" }} onChange={handleImportCmsJson} />
           </label>
 
           <button
             type="button"
-            className="ghost-button"
-            style={{ fontSize: "0.84rem", padding: "8px 14px", color: "#f87171" }}
+            className="ghost-button admin-icon-btn"
+            style={{ color: "#f87171" }}
             onClick={() => {
               if (window.confirm("Reset all homepage texts, banners, and sections to factory defaults?")) {
                 onChange(DEFAULT_STOREFRONT_CONFIG);
@@ -321,42 +313,41 @@ export function AdminHomepageEditor({
               }
             }}
           >
-            ↺ Reset Defaults
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+            <span>Reset</span>
           </button>
 
           <button
             type="button"
-            className="primary-button"
+            className="primary-button admin-icon-btn cms-publish-cta"
             disabled={isSaving}
             onClick={() => onSave()}
-            style={{ padding: "10px 20px", fontSize: "0.92rem", fontWeight: 800 }}
           >
-            {isSaving ? "Publishing..." : "💾 Save & Publish All Changes"}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            <span>{isSaving ? "Publishing..." : "Save & Publish"}</span>
           </button>
         </div>
       </div>
 
       {/* SUB-NAVIGATION TABS FOR EVERY HOMEPAGE AREA */}
-      <div
-        style={{
-          display: "flex",
-          gap: "8px",
-          flexWrap: "wrap",
-          marginBottom: "24px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-          paddingBottom: "14px",
-        }}
-      >
+      <div className="cms-subtabs-bar" role="tablist" aria-label="Homepage CMS Sections">
         {(
           [
-            { id: "overview", label: "⚡ Section Switches & Overview" },
-            { id: "hero", label: "🎬 Hero Slideshow & Banners" },
-            { id: "header", label: "🧭 Top Bar, Header & Menu" },
-            { id: "sections", label: "🔥 Best Sellers, New & Catalog" },
-            { id: "sound-finder", label: "🎧 Sound Style Finder (3 Cats)" },
-            { id: "reviews", label: "⭐ Customer Reviews" },
-            { id: "trust-blog", label: "🛡️ Trust Badges & Guides" },
-            { id: "footer", label: "🦶 Support Strip, CTA & Footer" },
+            { id: "overview", label: "Section Switches" },
+            { id: "hero", label: "Hero Slideshow" },
+            { id: "header", label: "Header & Menu" },
+            { id: "sections", label: "Catalog & Sections" },
+            { id: "sound-finder", label: "Sound Finder" },
+            { id: "reviews", label: "Reviews" },
+            { id: "trust-blog", label: "Trust & Guides" },
+            { id: "footer", label: "CTA & Footer" },
           ] as { id: CmsSubTab; label: string }[]
         ).map((tab) => {
           const active = subTab === tab.id;
@@ -364,18 +355,10 @@ export function AdminHomepageEditor({
             <button
               key={tab.id}
               type="button"
+              role="tab"
+              aria-selected={active}
+              className={`cms-subtab-btn ${active ? "active" : ""}`}
               onClick={() => setSubTab(tab.id)}
-              style={{
-                padding: "9px 15px",
-                borderRadius: "8px",
-                background: active ? "var(--cyan)" : "rgba(15, 23, 42, 0.85)",
-                color: active ? "#020617" : "#e2e8f0",
-                fontWeight: 700,
-                fontSize: "0.83rem",
-                border: active ? "1px solid var(--cyan)" : "1px solid rgba(255, 255, 255, 0.1)",
-                cursor: "pointer",
-                transition: "all 0.18s ease",
-              }}
             >
               {tab.label}
             </button>
@@ -389,20 +372,14 @@ export function AdminHomepageEditor({
       {subTab === "overview" && (
         <div>
           <div style={cardStyle}>
-            <h3 style={{ marginTop: 0, color: "var(--cyan)", fontSize: "1.1rem" }}>
-              👁️ Master Homepage Section Visibility Switches
+            <h3 style={{ marginTop: 0, color: "var(--cyan)", fontSize: "1.05rem" }}>
+              Master Homepage Section Switches
             </h3>
             <p className="field-help" style={{ marginBottom: "16px" }}>
-              Instantly turn any section on the homepage ON or OFF, or jump directly to edit its content.
+              Turn any storefront section ON or OFF globally, or open a section to edit its content.
             </p>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                gap: "12px",
-              }}
-            >
+            <div className="cms-grid-switches">
               {[
                 {
                   label: "Top Announcement Bar",
@@ -604,7 +581,7 @@ export function AdminHomepageEditor({
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px", marginBottom: "16px" }}>
+            <div className="cms-grid-auto" style={{ marginBottom: "16px" }}>
               <label style={{ color: "#cbd5e1", fontSize: "0.84rem" }}>
                 Top-Left Floating Stage Tag
                 <input
@@ -699,7 +676,7 @@ export function AdminHomepageEditor({
           </div>
 
           {/* Slides Selector & Slide Editor */}
-          <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "20px", alignItems: "start" }}>
+          <div className="cms-split-sidebar">
             {/* Left Column: Slide List & Quick Add from Catalog */}
             <div style={cardStyle}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
@@ -842,10 +819,8 @@ export function AdminHomepageEditor({
 
                 {/* Image Preview & Image Selector */}
                 <div
+                  className="cms-hero-image-row"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "180px 1fr",
-                    gap: "18px",
                     padding: "14px",
                     background: "rgba(5, 7, 13, 0.85)",
                     borderRadius: "10px",
@@ -924,7 +899,7 @@ export function AdminHomepageEditor({
                 </div>
 
                 {/* Text Fields */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+                <div className="cms-grid-2" style={{ marginBottom: "14px" }}>
                   <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                     Top Pill Badge
                     <input
@@ -983,7 +958,7 @@ export function AdminHomepageEditor({
                   />
                 </label>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div className="cms-grid-3" style={{ marginBottom: "12px" }}>
                   <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                     Primary Button Text
                     <input
@@ -1020,7 +995,7 @@ export function AdminHomepageEditor({
                   </label>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="cms-grid-2">
                   <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                     Secondary Button Text
                     <input
@@ -1149,7 +1124,7 @@ export function AdminHomepageEditor({
                 <span>Show Search Bar</span>
               </label>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px", marginBottom: "14px" }}>
+            <div className="cms-grid-auto" style={{ marginBottom: "14px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Brand Icon Letters
                 <input
@@ -1370,12 +1345,9 @@ export function AdminHomepageEditor({
               {config.header.drawerCategories.map((dc, idx) => (
                 <div
                   key={dc.id + idx}
+                  className="cms-row-drawer"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "auto 44px 1fr 1fr auto auto",
-                    gap: "10px",
-                    alignItems: "center",
-                    padding: "8px 12px",
+                    padding: "10px 12px",
                     background: dc.visible !== false ? "rgba(15, 23, 42, 0.75)" : "rgba(15, 23, 42, 0.35)",
                     border: dc.visible !== false ? "1px solid rgba(0, 229, 255, 0.2)" : "1px solid rgba(255, 255, 255, 0.06)",
                     borderRadius: "8px",
@@ -1539,7 +1511,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "16px" }}>
+            <div className="cms-grid-auto" style={{ marginBottom: "16px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Section Kicker
                 <input
@@ -1643,7 +1615,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "12px" }}>
+            <div className="cms-grid-auto" style={{ marginBottom: "12px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Section Kicker
                 <input
@@ -1707,7 +1679,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+            <div className="cms-grid-2" style={{ marginBottom: "12px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Kicker Label
                 <input
@@ -1772,12 +1744,9 @@ export function AdminHomepageEditor({
                   (cat: CatalogCategoryItemConfig, idx: number, arr: CatalogCategoryItemConfig[]) => (
                     <div
                       key={cat.id || `${cat.filterValue}-${idx}`}
+                      className="cms-row-cat"
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "auto 1fr 1fr auto auto",
-                        gap: "10px",
-                        alignItems: "center",
-                        padding: "9px 12px",
+                        padding: "10px 12px",
                         borderRadius: "8px",
                         background: cat.visible !== false ? "rgba(15, 23, 42, 0.85)" : "rgba(15, 23, 42, 0.38)",
                         border:
@@ -2060,7 +2029,7 @@ export function AdminHomepageEditor({
                 <span>Show Recently Viewed Section</span>
               </label>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px", gap: "12px" }}>
+            <div className="cms-grid-3-trailing">
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Kicker Label
                 <input
@@ -2137,7 +2106,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+            <div className="cms-grid-2" style={{ marginBottom: "12px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Section Kicker
                 <input
@@ -2165,7 +2134,7 @@ export function AdminHomepageEditor({
             </label>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "20px", alignItems: "start" }}>
+          <div className="cms-split-sidebar cms-split-sidebar-sm">
             <div style={cardStyle}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                 <h4 style={{ margin: 0, color: "white" }}>Sound Profiles ({styles.length})</h4>
@@ -2212,7 +2181,7 @@ export function AdminHomepageEditor({
                   Editing Profile: <span style={{ color: "var(--cyan)" }}>{currentStyle.name}</span>
                 </h3>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div className="cms-grid-2" style={{ marginBottom: "12px" }}>
                   <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                     Profile Name
                     <input
@@ -2363,7 +2332,7 @@ export function AdminHomepageEditor({
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "18px" }}>
+            <div className="cms-grid-auto" style={{ marginBottom: "18px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Kicker
                 <input
@@ -2398,7 +2367,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "14px" }}>
+            <div className="cms-grid-cards">
               {config.reviews.items.map((rev, idx) => (
                 <div
                   key={rev.id + idx}
@@ -2427,7 +2396,7 @@ export function AdminHomepageEditor({
                     </button>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <div className="cms-grid-2 cms-grid-2-tight">
                     <input
                       style={inputStyle}
                       value={rev.author}
@@ -2450,7 +2419,7 @@ export function AdminHomepageEditor({
                     />
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: "8px" }}>
+                  <div className="cms-grid-3-trailing cms-grid-2-tight">
                     <input
                       style={inputStyle}
                       value={rev.product}
@@ -2551,7 +2520,7 @@ export function AdminHomepageEditor({
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+            <div className="cms-grid-2" style={{ marginBottom: "14px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Section Kicker
                 <input
@@ -2570,7 +2539,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "12px" }}>
+            <div className="cms-grid-cards-sm">
               {config.trust.items.map((item, idx) => (
                 <div
                   key={item.id + idx}
@@ -2661,7 +2630,7 @@ export function AdminHomepageEditor({
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+            <div className="cms-grid-3" style={{ marginBottom: "14px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Kicker
                 <input
@@ -2688,7 +2657,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "14px" }}>
+            <div className="cms-grid-cards">
               {config.blog.articles.map((art, idx) => (
                 <div
                   key={art.id + idx}
@@ -2748,7 +2717,7 @@ export function AdminHomepageEditor({
                     </label>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <div className="cms-grid-2 cms-grid-2-tight">
                     <input
                       style={inputStyle}
                       value={art.tag}
@@ -2821,7 +2790,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px" }}>
+            <div className="cms-grid-cards-sm">
               {config.supportStrip.items.map((item: SupportStripItemConfig, idx: number) => (
                 <div
                   key={item.id + idx}
@@ -2886,7 +2855,7 @@ export function AdminHomepageEditor({
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: "12px" }}>
+            <div className="cms-grid-cta-row">
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Kicker Label
                 <input
@@ -2929,7 +2898,7 @@ export function AdminHomepageEditor({
                 <span>Show Site Footer</span>
               </label>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "12px", marginBottom: "12px" }}>
+            <div className="cms-grid-brand-row" style={{ marginBottom: "12px" }}>
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Brand Mark
                 <input
@@ -2958,7 +2927,7 @@ export function AdminHomepageEditor({
               />
             </label>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div className="cms-grid-2">
               <label style={{ fontSize: "0.84rem", color: "#cbd5e1" }}>
                 Copyright Text
                 <input
@@ -2979,6 +2948,17 @@ export function AdminHomepageEditor({
           </div>
         </div>
       )}
+      {/* Mobile Sticky Save Bar */}
+      <div className="cms-mobile-save-bar">
+        <button
+          type="button"
+          className="primary-button wide"
+          disabled={isSaving}
+          onClick={() => onSave()}
+        >
+          {isSaving ? "Publishing Changes..." : "Save & Publish All Changes"}
+        </button>
+      </div>
     </section>
   );
 }

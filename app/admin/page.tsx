@@ -1629,42 +1629,67 @@ export default function AdminPage() {
 
       {/* Header */}
       <header className="admin-header">
-        <div>
-          <p className="category-label">Noovyx Admin</p>
-          <h1>Noovyx Storefront CMS, Product & Order Control Center</h1>
-          <span>{user.email}</span>
-          <span className="table-muted">
-            Access:{" "}
-            {adminState === "claim"
-              ? "Verified Admin (Custom Claim)"
-              : "Verified Admin (Database Document)"}
-          </span>
+        <div className="admin-header-info">
+          <div className="admin-header-eyebrow">
+            <span className="admin-status-pill">
+              <span className="admin-status-dot" aria-hidden="true" />
+              Live Control Center
+            </span>
+            <span className="admin-role-pill">
+              {adminState === "claim" ? "Verified Admin" : "Admin Document"}
+            </span>
+          </div>
+          <h1>Noovyx Storefront, Catalog &amp; Orders</h1>
+          <p className="admin-user-meta">{user.email}</p>
         </div>
         <div className="admin-header-actions">
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="ghost-button"
-            style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            className="ghost-button admin-icon-btn"
           >
-            🌐 View Live Homepage ↗
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            <span>Live Store</span>
           </a>
           <button
-            className="ghost-button"
+            className="ghost-button admin-icon-btn"
             type="button"
             onClick={() => startNewProduct("IEMs")}
           >
-            + Quick Add Product
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Quick Add</span>
           </button>
-          <button className="ghost-button" type="button" onClick={exportBrowserLocalStorageSnapshot}>
-            Export Browser State
+          <button className="ghost-button admin-icon-btn" type="button" onClick={exportBrowserLocalStorageSnapshot}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>Export Snapshot</span>
           </button>
-          <button className="ghost-button" type="button" onClick={refreshAdminData}>
-            Refresh Data
+          <button className="ghost-button admin-icon-btn" type="button" onClick={refreshAdminData}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            <span>Refresh</span>
           </button>
-          <button className="primary-button" type="button" onClick={handleAdminSignOut}>
-            Sign out
+          <button className="primary-button admin-icon-btn" type="button" onClick={handleAdminSignOut}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>Sign out</span>
           </button>
         </div>
       </header>
@@ -1676,35 +1701,61 @@ export default function AdminPage() {
           type="button"
           onClick={() => setActiveTab("homepage")}
         >
-          🎛️ Homepage Builder & CMS
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="3" y1="9" x2="21" y2="9" />
+            <line x1="9" y1="21" x2="9" y2="9" />
+          </svg>
+          <span>Homepage &amp; CMS</span>
         </button>
         <button
           className={`admin-nav-tab ${activeTab === "catalog" ? "active" : ""}`}
           type="button"
           onClick={() => setActiveTab("catalog")}
         >
-          📦 Catalog Inventory <span className="tab-badge">{stats.total}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+          <span>Catalog Inventory</span>
+          <span className="tab-badge">{stats.total}</span>
         </button>
         <button
           className={`admin-nav-tab ${activeTab === "quick-add" ? "active" : ""}`}
           type="button"
           onClick={() => setActiveTab("quick-add")}
         >
-          ⚡ {editingProduct.id ? "Edit Product" : "Quick Add Product"}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+          <span>{editingProduct.id ? "Edit Product" : "Quick Add"}</span>
         </button>
         <button
           className={`admin-nav-tab ${activeTab === "bulk" ? "active" : ""}`}
           type="button"
           onClick={() => setActiveTab("bulk")}
         >
-          🚀 Bulk Upload & CSV
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span>Bulk CSV / JSON</span>
         </button>
         <button
           className={`admin-nav-tab ${activeTab === "orders" ? "active" : ""}`}
           type="button"
           onClick={() => setActiveTab("orders")}
         >
-          📋 Orders <span className="tab-badge">{orderStats.new > 0 ? `${orderStats.new} new` : orderStats.total}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+          </svg>
+          <span>Orders</span>
+          <span className="tab-badge">{orderStats.new > 0 ? `${orderStats.new} new` : orderStats.total}</span>
         </button>
       </nav>
 
@@ -1784,21 +1835,21 @@ export default function AdminPage() {
                 onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)}
               >
                 <option value="All">All Products ({products.length})</option>
-                <option value="Visible">👁️ Visible on Website ({stats.active})</option>
-                <option value="Hidden">🚫 Hidden from Website ({products.length - stats.active})</option>
-                <option value="Featured">★ Featured (Best Sellers)</option>
+                <option value="Visible">Visible on Website ({stats.active})</option>
+                <option value="Hidden">Hidden from Website ({products.length - stats.active})</option>
+                <option value="Featured">Featured (Best Sellers)</option>
                 <option value="Low">Low Stock Alerts</option>
                 <option value="Out">Out of Stock</option>
               </select>
             </label>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", flexWrap: "wrap" }}>
+            <div className="admin-toolbar-actions">
               <button
                 className="ghost-button"
                 type="button"
                 onClick={() => handleBulkVisibility(true)}
                 title="Show all currently filtered products on the website"
               >
-                👁️ Show Filtered
+                Show Filtered
               </button>
               <button
                 className="ghost-button"
@@ -1807,36 +1858,28 @@ export default function AdminPage() {
                 title="Hide all currently filtered products from the website"
                 style={{ color: "#f87171" }}
               >
-                🚫 Hide Filtered
+                Hide Filtered
               </button>
               <button
                 className="ghost-button"
                 type="button"
                 disabled={isSyncingSeed}
                 onClick={handleSyncSeedCatalog}
-                title="Push all catalog products and visibility settings to Firestore"
+                title="Push all catalog products and visibility settings to Supabase"
               >
-                {isSyncingSeed ? "Syncing..." : "☁️ Sync Catalog to DB"}
+                {isSyncingSeed ? "Syncing..." : "Sync Catalog to DB"}
               </button>
             </div>
           </div>
 
           {/* Quick Visibility Filter Pills */}
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              flexWrap: "wrap",
-              padding: "0 16px 14px 16px",
-              alignItems: "center",
-            }}
-          >
+          <div className="admin-filter-pills">
             {(
               [
-                { id: "All", label: `All Products (${products.length})` },
-                { id: "Visible", label: `👁️ Visible on Website (${stats.active})` },
-                { id: "Hidden", label: `🚫 Hidden from Website (${products.length - stats.active})` },
-                { id: "Featured", label: `★ In Best Sellers (${products.filter((p) => p.featured).length})` },
+                { id: "All", label: `All (${products.length})` },
+                { id: "Visible", label: `Visible (${stats.active})` },
+                { id: "Hidden", label: `Hidden (${products.length - stats.active})` },
+                { id: "Featured", label: `Featured (${products.filter((p) => p.featured).length})` },
               ] as const
             ).map((pill) => {
               const active = stockFilter === pill.id;
@@ -1844,17 +1887,8 @@ export default function AdminPage() {
                 <button
                   key={pill.id}
                   type="button"
+                  className={`order-filter-pill ${active ? "active" : ""}`}
                   onClick={() => setStockFilter(pill.id)}
-                  style={{
-                    padding: "6px 13px",
-                    borderRadius: "999px",
-                    fontSize: "0.78rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    background: active ? "var(--cyan)" : "rgba(15, 23, 42, 0.75)",
-                    color: active ? "#020617" : "#cbd5e1",
-                    border: active ? "1px solid var(--cyan)" : "1px solid rgba(255, 255, 255, 0.1)",
-                  }}
                 >
                   {pill.label}
                 </button>
@@ -1862,7 +1896,7 @@ export default function AdminPage() {
             })}
           </div>
 
-          <table className="admin-table">
+          <table className="admin-table admin-catalog-table">
             <thead>
               <tr>
                 <th>Product</th>
@@ -1879,12 +1913,9 @@ export default function AdminPage() {
                 filteredProducts.map((product) => (
                   <tr
                     key={product.id}
-                    style={{
-                      opacity: product.isActive ? 1 : 0.58,
-                      transition: "opacity 0.15s ease",
-                    }}
+                    className={product.isActive ? "" : "is-row-dimmed"}
                   >
-                    <td>
+                    <td data-label="Product" className="admin-td-primary">
                       <div className="table-product-row">
                         {product.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -1898,12 +1929,13 @@ export default function AdminPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{product.category}</td>
-                    <td>
+                    <td data-label="Category">{product.category}</td>
+                    <td data-label="Stock">
                       <div className="table-stock-stepper">
                         <button
                           type="button"
                           onClick={() => adjustStock(product, -1)}
+                          aria-label={`Reduce stock for ${product.name}`}
                           title="Reduce stock by 1"
                         >
                           -
@@ -1914,40 +1946,35 @@ export default function AdminPage() {
                         <button
                           type="button"
                           onClick={() => adjustStock(product, 1)}
+                          aria-label={`Increase stock for ${product.name}`}
                           title="Increase stock by 1"
                         >
                           +
                         </button>
                       </div>
                     </td>
-                    <td>{formatCurrency(product.price)}</td>
-                    <td>
+                    <td data-label="Price" className="admin-price-cell">{formatCurrency(product.price)}</td>
+                    <td data-label="Visibility">
                       <button
-                        className={`table-quick-toggle ${product.isActive ? "is-active" : ""}`}
+                        className={`table-quick-toggle ${product.isActive ? "is-active" : "is-hidden"}`}
                         type="button"
                         onClick={() => toggleActive(product)}
                         title={product.isActive ? "Click to HIDE this product from the website" : "Click to SHOW this product on the website"}
-                        style={{
-                          borderColor: product.isActive ? "rgba(16, 185, 129, 0.5)" : "rgba(248, 113, 113, 0.45)",
-                          color: product.isActive ? "#34d399" : "#f87171",
-                          background: product.isActive ? "rgba(16, 185, 129, 0.12)" : "rgba(248, 113, 113, 0.12)",
-                          fontWeight: 700,
-                        }}
                       >
-                        {product.isActive ? "👁️ Visible" : "🚫 Hidden"}
+                        {product.isActive ? "Visible" : "Hidden"}
                       </button>
                     </td>
-                    <td>
+                    <td data-label="Best Sellers">
                       <button
                         className={`table-quick-toggle ${product.featured ? "is-featured" : ""}`}
                         type="button"
                         onClick={() => toggleFeatured(product)}
                         title={product.featured ? "Click to remove from Best Sellers (set to Normal)" : "Click to feature in Best Sellers"}
                       >
-                        {product.featured ? "★ Featured" : "☆ Normal"}
+                        {product.featured ? "★ Featured" : "Normal"}
                       </button>
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <div className="table-actions-cell">
                         <button
                           className="table-clone-btn"
@@ -1967,7 +1994,7 @@ export default function AdminPage() {
                           onClick={() => selectForEdit(product)}
                           title="Edit product details"
                         >
-                          ✏ Edit
+                          Edit
                         </button>
                         <button
                           className="table-clone-btn"
@@ -2044,7 +2071,7 @@ export default function AdminPage() {
             <form className="admin-form" noValidate onSubmit={handleSaveProduct}>
               {/* Product Core Info */}
               <div className="form-row">
-                <label style={{ gridColumn: "span 2" }}>
+                <label className="form-field-wide">
                   Product Name
                   <input
                     value={editingProduct.name}
@@ -2357,14 +2384,14 @@ export default function AdminPage() {
                   <tbody>
                     {bulkParsed.map((p, idx) => (
                       <tr key={`bulk-${idx}`}>
-                        <td>
+                        <td data-label="Product" className="admin-td-primary">
                           <strong>{p.name}</strong>
                           <span className="table-muted">{p.slug}</span>
                         </td>
-                        <td>{p.category}</td>
-                        <td>{formatCurrency(p.price)}</td>
-                        <td>{p.stockQuantity}</td>
-                        <td style={{ maxWidth: "260px" }}>{p.description}</td>
+                        <td data-label="Category">{p.category}</td>
+                        <td data-label="Price" className="admin-price-cell">{formatCurrency(p.price)}</td>
+                        <td data-label="Stock">{p.stockQuantity}</td>
+                        <td data-label="Description">{p.description}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2378,7 +2405,7 @@ export default function AdminPage() {
       {/* TAB 4: ORDERS MANAGEMENT */}
       {activeTab === "orders" && (
         <section className="admin-table-wrap">
-          <div className="admin-toolbar" style={{ gridTemplateColumns: "1fr auto" }}>
+          <div className="admin-toolbar admin-orders-toolbar">
             <label>
               Search Orders
               <input
@@ -2409,7 +2436,7 @@ export default function AdminPage() {
           <table className="admin-table orders-table">
             <thead>
               <tr>
-                <th>Customer & Delivery</th>
+                <th>Customer &amp; Delivery</th>
                 <th>Items Ordered</th>
                 <th>Total</th>
                 <th>Status</th>
@@ -2421,10 +2448,10 @@ export default function AdminPage() {
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
                   <tr key={order.id}>
-                    <td>
+                    <td data-label="Customer" className="admin-td-primary">
                       <strong>{order.customerName}</strong>
                       <span className="table-muted">
-                        📞 {order.contact}
+                        Phone: {order.contact}
                         <button
                           className="copy-mini-btn"
                           type="button"
@@ -2434,7 +2461,7 @@ export default function AdminPage() {
                         </button>
                       </span>
                       <span className="table-muted">
-                        📍 {order.address}
+                        Address: {order.address}
                         <button
                           className="copy-mini-btn"
                           type="button"
@@ -2444,10 +2471,10 @@ export default function AdminPage() {
                         </button>
                       </span>
                       {order.notes && (
-                        <span className="table-muted">📝 Note: {order.notes}</span>
+                        <span className="table-muted">Note: {order.notes}</span>
                       )}
                     </td>
-                    <td>
+                    <td data-label="Items">
                       <ul className="order-items">
                         {order.items.map((item) => (
                           <li key={`${order.id}-${item.productId}`}>
@@ -2456,7 +2483,7 @@ export default function AdminPage() {
                         ))}
                       </ul>
                     </td>
-                    <td>
+                    <td data-label="Total">
                       <strong style={{ color: "var(--cyan)", fontSize: "1.05rem" }}>
                         {formatCurrency(order.grandTotal ?? order.subtotal)}
                       </strong>
@@ -2472,9 +2499,10 @@ export default function AdminPage() {
                         </span>
                       ) : null}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <select
                         className="status-select"
+                        aria-label={`Order status for ${order.customerName}`}
                         value={order.status}
                         onChange={(e) =>
                           handleOrderStatus(order.id, e.target.value as OrderStatus)
@@ -2486,7 +2514,7 @@ export default function AdminPage() {
                         <option value="cancelled">Cancelled</option>
                       </select>
                     </td>
-                    <td>
+                    <td data-label="Date">
                       {order.createdAt
                         ? order.createdAt.toLocaleDateString(undefined, {
                             day: "2-digit",
@@ -2495,14 +2523,14 @@ export default function AdminPage() {
                           })
                         : "Recent"}
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <button
                         className="text-button"
                         type="button"
                         disabled={order.status === "cancelled"}
                         onClick={() => handleCancelOrder(order.id)}
                       >
-                        {order.status === "cancelled" ? "Cancelled" : "Cancel"}
+                        {order.status === "cancelled" ? "Cancelled" : "Cancel Order"}
                       </button>
                     </td>
                   </tr>
