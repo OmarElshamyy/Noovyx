@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatCurrency, products as defaultProducts } from "../../../products";
 import { getPublicProducts } from "../../../productService";
@@ -11,7 +10,28 @@ export const dynamic = "force-dynamic";
 async function resolveCatalog(): Promise<Product[]> {
   const live = await getPublicProducts().catch(() => defaultProducts);
   const active = live.filter((p) => p.isActive !== false);
-  return active.length > 1 ? active : defaultProducts;
+  return active.length > 0 ? active : defaultProducts;
+}
+
+function normalizeLookupKey(raw: string): string {
+  return decodeURIComponent(raw || "")
+    .toLowerCase()
+    .trim()
+    .replace(/duonic/g, "dounic")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-+|-+$)/g, "");
+}
+
+function findProductBySlug(catalog: Product[], rawSlug: string): Product | undefined {
+  const exact = catalog.find((p) => p.slug === rawSlug || p.id === rawSlug);
+  if (exact) return exact;
+  const target = normalizeLookupKey(rawSlug);
+  return catalog.find(
+    (p) =>
+      normalizeLookupKey(p.slug || "") === target ||
+      normalizeLookupKey(p.id || "") === target ||
+      normalizeLookupKey(p.name || "") === target,
+  );
 }
 
 export async function generateMetadata({
@@ -21,20 +41,39 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const catalog = await resolveCatalog();
-  const product = catalog.find((p) => p.slug === slug || p.id === slug);
+  const product = findProductBySlug(catalog, slug);
   if (!product) {
     return { title: "Product Not Found" };
   }
 
-  const canonicalUrl = `https://noovyx.com/products/${encodeURIComponent(product.slug || product.id)}`;
+  const canonicalSlug = product.slug || product.id;
+  const canonicalUrl = `https://noovyx.com/products/${encodeURIComponent(canonicalSlug)}`;
   const priceText = formatCurrency(product.price);
-  const rawDesc = `${product.name} (${priceText}) in Egypt. ${product.description} Fast Cash on Delivery across Cairo, Giza & all governorates.`;
+  const cleanFirstLine = (product.description || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const rawDesc = `${product.name} (${priceText}) in Egypt. ${cleanFirstLine} Fast Cash on Delivery across Cairo, Giza & all governorates.`;
   const description = rawDesc.length > 152 ? `${rawDesc.slice(0, 149)}...` : rawDesc;
   const primaryImage = product.imageUrl || product.imageUrls?.[0] || "/products/kz-castor-bass.png";
+  const baseName = product.name.replace(/\s*\([^)]*\)\s*/g, " ").trim();
 
   return {
     title: `${product.name} Price in Egypt (${priceText}) — Buy ${product.category}`,
     description,
+    keywords: [
+      product.name,
+      baseName,
+      `${product.name} Egypt`,
+      `${baseName} Egypt`,
+      `${product.name} price in Egypt`,
+      `${baseName} price in Egypt`,
+      `Buy ${product.name} Egypt`,
+      `${product.category} Egypt`,
+      `سماعة ${baseName} مصر`,
+      `سعر ${baseName} في مصر`,
+      "Noovyx Egypt",
+      "noovyx.com",
+    ],
     alternates: {
       canonical: canonicalUrl,
     },
@@ -66,7 +105,7 @@ export default async function ProductDetailPage({
     loadStorefrontConfig().catch(() => DEFAULT_STOREFRONT_CONFIG),
   ]);
 
-  const product = catalog.find((p) => p.slug === slug || p.id === slug);
+  const product = findProductBySlug(catalog, slug);
   if (!product) {
     notFound();
   }
@@ -92,7 +131,7 @@ export default async function ProductDetailPage({
   );
 
   const relatedProducts = catalog
-    .filter((p) => p.category === product.category && p.id !== product.id)
+    .filter((p) => p.id !== product.id)
     .slice(0, 4);
 
   const jsonLd = {
@@ -130,6 +169,7 @@ export default async function ProductDetailPage({
         description: product.description,
         image: absImages,
         sku: product.id,
+        mpn: product.id.toUpperCase(),
         category: product.category,
         brand: {
           "@type": "Brand",
@@ -172,6 +212,10 @@ export default async function ProductDetailPage({
             ? "https://schema.org/InStock"
             : "https://schema.org/OutOfStock",
           itemCondition: "https://schema.org/NewCondition",
+          areaServed: {
+            "@type": "Country",
+            name: "EG",
+          },
           seller: {
             "@type": "Organization",
             name: "Noovyx",
@@ -192,9 +236,9 @@ export default async function ProductDetailPage({
       />
 
       <nav aria-label="Breadcrumb" style={{ marginBottom: "24px", fontSize: "0.88rem", color: "#9fb0cf" }}>
-        <Link href="/" style={{ color: "#00e5ff" }}>Noovyx Egypt</Link>
+        <a href="/" style={{ color: "#00e5ff" }}>Noovyx Egypt</a>
         <span style={{ margin: "0 8px" }}>/</span>
-        <Link href="/#catalog" style={{ color: "#9fb0cf" }}>{product.category}</Link>
+        <a href="/#catalog" style={{ color: "#9fb0cf" }}>{product.category}</a>
         <span style={{ margin: "0 8px" }}>/</span>
         <span style={{ color: "#f4f8ff" }}>{product.name}</span>
       </nav>
@@ -213,7 +257,7 @@ export default async function ProductDetailPage({
         <div>
           <img
             src={images[0]}
-            alt={`${product.name} — ${product.category} in Egypt`}
+            alt={`${product.name} — Authentic ${product.category} in Egypt at Noovyx`}
             width={560}
             height={560}
             style={{
@@ -224,27 +268,54 @@ export default async function ProductDetailPage({
               border: "1px solid rgba(0, 229, 255, 0.14)",
             }}
           />
+          {images.length > 1 && (
+            <div style={{ display: "flex", gap: "10px", marginTop: "12px", flexWrap: "wrap" }}>
+              {images.slice(1).map((imgUrl, idx) => (
+                <img
+                  key={imgUrl + idx}
+                  src={imgUrl}
+                  alt={`${product.name} view ${idx + 2}`}
+                  width={110}
+                  height={110}
+                  loading="lazy"
+                  style={{
+                    width: "84px",
+                    height: "84px",
+                    objectFit: "cover",
+                    borderRadius: "6px",
+                    border: "1px solid rgba(0, 229, 255, 0.18)",
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
           <p className="category-label" style={{ color: "#00e5ff", textTransform: "uppercase", fontSize: "0.78rem", letterSpacing: "0.12em" }}>
-            {product.category} · Authentic Stock in Egypt
+            {product.category} · Authentic Stock in Egypt (متوفر في مصر)
           </p>
           <h1 style={{ fontSize: "2rem", margin: "8px 0 12px", color: "#f4f8ff" }}>{product.name}</h1>
           <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "#00e5ff", margin: "0 0 12px" }}>
             {formatCurrency(product.price)}
           </p>
           <p style={{ color: product.inStock ? "#34d399" : "#f87171", fontWeight: 600, marginBottom: "16px" }}>
-            {product.inStock ? "In stock in Cairo — Cash on Delivery across Egypt" : "Currently out of stock"}
+            {product.inStock
+              ? "In stock in Cairo — 24–72h Cash on Delivery across Egypt (الدفع عند الاستلام)"
+              : "Currently out of stock"}
           </p>
-          <p style={{ color: "#e5eefc", lineHeight: 1.65, marginBottom: "20px" }}>{product.description}</p>
+          <p style={{ color: "#e5eefc", lineHeight: 1.65, marginBottom: "20px", whiteSpace: "pre-line" }}>
+            {product.description}
+          </p>
 
           {product.specs && product.specs.length > 0 && (
             <div style={{ marginBottom: "24px" }}>
-              <h2 style={{ fontSize: "1rem", color: "#f4f8ff", marginBottom: "10px" }}>Technical Specifications</h2>
+              <h2 style={{ fontSize: "1rem", color: "#f4f8ff", marginBottom: "10px" }}>
+                Technical Specifications — {product.name}
+              </h2>
               <ul style={{ paddingLeft: "18px", color: "#9fb0cf", lineHeight: 1.7 }}>
                 {product.specs.map((spec) => (
-                  <li key={spec}>{spec}</li>
+                  <li key={spec}>{spec.replace(/^\*\s*/, "")}</li>
                 ))}
               </ul>
             </div>
@@ -267,7 +338,7 @@ export default async function ProductDetailPage({
             >
               Order with Cash on Delivery →
             </a>
-            <Link
+            <a
               href="/#catalog"
               className="kz-btn-secondary"
               style={{
@@ -280,7 +351,7 @@ export default async function ProductDetailPage({
               }}
             >
               Browse Full Catalog
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -288,7 +359,7 @@ export default async function ProductDetailPage({
       {relatedProducts.length > 0 && (
         <section style={{ marginTop: "48px" }} aria-label="Related products">
           <h2 style={{ fontSize: "1.35rem", marginBottom: "16px", color: "#f4f8ff" }}>
-            Related {product.category} in Egypt
+            More Authentic {product.category} Available in Egypt
           </h2>
           <div
             style={{

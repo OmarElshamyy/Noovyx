@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Storefront } from "./storefront";
 import { products as defaultProducts } from "../products";
 import { getPublicProducts } from "../productService";
@@ -10,10 +11,83 @@ import type { Product } from "../types";
 
 export const dynamic = "force-dynamic";
 
+async function resolveActiveProducts(): Promise<Product[]> {
+  const fallbackProducts = defaultProducts.filter((p) => p.isActive !== false);
+  const live = await getPublicProducts().catch(() => fallbackProducts);
+  const active = live.filter((p) => p.isActive !== false);
+  return active.length > 0 ? active : fallbackProducts;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const activeProducts = await resolveActiveProducts();
+  const topNames = activeProducts
+    .slice(0, 6)
+    .map((p) => p.name.replace(/\s*\([^)]*\)\s*/g, " ").trim());
+
+  const dynamicList = topNames.slice(0, 4).join(", ");
+  const rawDescription = dynamicList
+    ? `Buy authentic KZ & Hi-Fi In-Ear Monitors (IEMs) in Egypt: ${dynamicList}. Inspected in Cairo with fast Cash on Delivery.`
+    : "Buy authentic KZ & Hi-Fi In-Ear Monitors (IEMs), Type-C DAC dongles, and upgrade cables in Egypt. Inspected in Cairo with fast Cash on Delivery.";
+  const description =
+    rawDescription.length > 155 ? `${rawDescription.slice(0, 152)}...` : rawDescription;
+
+  const dynamicKeywords = activeProducts.flatMap((p) => {
+    const clean = p.name.replace(/\s*\([^)]*\)\s*/g, " ").trim();
+    return [
+      p.name,
+      clean,
+      `${clean} Egypt`,
+      `${clean} price in Egypt`,
+      `سماعة ${clean} مصر`,
+    ];
+  });
+
+  return {
+    title: "Noovyx | Pro Audio, KZ IEMs & Hi-Fi DAC Store Egypt",
+    description,
+    keywords: [
+      "Noovyx",
+      "noovyx.com",
+      "Noovyx Egypt",
+      "IEM Egypt",
+      "In-Ear Monitors Egypt",
+      "KZ Audio Egypt",
+      "KZ IEM Egypt",
+      ...dynamicKeywords,
+      "KZ Duonic Bass Edition Egypt",
+      "KZ Dounic Bass Edition Egypt",
+      "سماعات KZ مصر",
+      "سماعات IEM مصر",
+      "متجر سماعات مصر",
+      "نوفيكس",
+    ],
+    alternates: {
+      canonical: "https://noovyx.com",
+    },
+    openGraph: {
+      type: "website",
+      url: "https://noovyx.com",
+      siteName: "Noovyx",
+      title: "Noovyx | Pro Audio, KZ IEMs & Hi-Fi DAC Store Egypt",
+      description,
+      locale: "en_EG",
+      alternateLocale: ["ar_EG", "en_US"],
+      images: [
+        {
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: "Noovyx — Pro Audio & IEM Store Egypt (noovyx.com)",
+        },
+      ],
+    },
+  };
+}
+
 function buildStructuredData(liveProducts: Product[], visibleReviews: ReviewItemConfig[]) {
   const baseUrl = "https://noovyx.com";
   const activeProducts =
-    liveProducts.filter((p) => p.isActive !== false).length > 1
+    liveProducts.filter((p) => p.isActive !== false).length > 0
       ? liveProducts.filter((p) => p.isActive !== false)
       : defaultProducts;
 
@@ -168,7 +242,7 @@ function buildStructuredData(liveProducts: Product[], visibleReviews: ReviewItem
         name: "Which IEMs are best for competitive gaming and studio music monitoring?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "For competitive gaming (Valorant, CS2, Call of Duty), dual-driver and hybrid models like the KZ Castor Bass Edition, KZ ZSN Pro X, and KZ ZS10 Pro 2 provide pinpoint 3D footstep imaging and zero-latency wired response.",
+          text: "For competitive gaming (Valorant, CS2, Call of Duty), dual-driver and hybrid models like the KZ Castor Pro 2, KZ AS16 Pro X, KZ Duonic Bass Edition, and KZ Gale Type-C provide pinpoint 3D footstep imaging and zero-latency wired response.",
         },
       },
     ],
@@ -181,15 +255,10 @@ function buildStructuredData(liveProducts: Product[], visibleReviews: ReviewItem
 }
 
 export default async function Home() {
-  const fallbackProducts = defaultProducts.filter((p) => p.isActive !== false);
-  const [initialCmsConfig, initialProducts] = await Promise.all([
+  const [initialCmsConfig, activeProducts] = await Promise.all([
     loadStorefrontConfig().catch(() => DEFAULT_STOREFRONT_CONFIG),
-    getPublicProducts().catch(() => fallbackProducts),
+    resolveActiveProducts(),
   ]);
-  const activeProducts =
-    initialProducts.filter((p) => p.isActive !== false).length > 1
-      ? initialProducts.filter((p) => p.isActive !== false)
-      : fallbackProducts;
   const visibleReviews =
     initialCmsConfig.reviews?.enabled !== false
       ? initialCmsConfig.reviews?.items || DEFAULT_STOREFRONT_CONFIG.reviews.items

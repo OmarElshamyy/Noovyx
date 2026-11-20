@@ -9,21 +9,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const liveProducts = await getPublicProducts().catch(() => defaultProducts);
   const activeProducts =
-    liveProducts.filter((p) => p.isActive !== false).length > 1
+    liveProducts.filter((p) => p.isActive !== false).length > 0
       ? liveProducts.filter((p) => p.isActive !== false)
       : defaultProducts;
 
   const productEntries: MetadataRoute.Sitemap = activeProducts.map((product) => ({
     url: `${baseUrl}/products/${encodeURIComponent(product.slug || product.id)}`,
     lastModified,
-    changeFrequency: "weekly",
-    priority: product.featured ? 0.9 : 0.8,
+    changeFrequency: "daily",
+    priority: 0.9,
   }));
 
   const guideEntries: MetadataRoute.Sitemap = SEO_GUIDES.map((guide) => ({
     url: `${baseUrl}/guides/${encodeURIComponent(guide.slug)}`,
     lastModified: new Date(guide.updatedAt),
-    changeFrequency: "monthly",
+    changeFrequency: "weekly",
     priority: 0.75,
   }));
 
