@@ -11916,6 +11916,12 @@ body {
   }
 }
 
+/* Product details gallery: single image must fill the full stage (no empty thumbnail column) */
+.product-gallery.single-image,
+.pdm-dialog .product-gallery.single-image {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
 /* Mobile Header Sidebar-Only Navigation + All-Caps Brand Name */
 .footer-brand span:last-child {
   text-transform: uppercase !important;

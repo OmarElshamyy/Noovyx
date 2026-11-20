@@ -34,7 +34,7 @@ export const products: Product[] = [
     "stockQuantity": 18,
     "lowStockThreshold": 4,
     "isActive": true,
-    "featured": false
+    "featured": true
   },
   {
     "id": "kz-zsn-pro-x",
@@ -58,8 +58,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 24,
     "lowStockThreshold": 5,
-    "isActive": false,
-    "featured": false
+    "isActive": true,
+    "featured": true
   },
   {
     "id": "kz-zs10-pro-2",
@@ -84,8 +84,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 14,
     "lowStockThreshold": 3,
-    "isActive": false,
-    "featured": false
+    "isActive": true,
+    "featured": true
   },
   {
     "id": "kz-krila",
@@ -110,7 +110,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 16,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -136,8 +136,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 8,
     "lowStockThreshold": 2,
-    "isActive": false,
-    "featured": false
+    "isActive": true,
+    "featured": true
   },
   {
     "id": "kz-edx-pro-x",
@@ -162,7 +162,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 30,
     "lowStockThreshold": 6,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -188,7 +188,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 6,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -214,7 +214,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 22,
     "lowStockThreshold": 5,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -240,7 +240,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 12,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -266,7 +266,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 5,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -292,8 +292,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 20,
     "lowStockThreshold": 4,
-    "isActive": false,
-    "featured": false
+    "isActive": true,
+    "featured": true
   },
   {
     "id": "kz-carol-pro",
@@ -318,7 +318,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 15,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -344,7 +344,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 17,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -369,7 +369,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 9,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -395,7 +395,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 11,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -421,7 +421,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 14,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -447,7 +447,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 12,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -473,8 +473,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 18,
     "lowStockThreshold": 4,
-    "isActive": false,
-    "featured": false
+    "isActive": true,
+    "featured": true
   },
   {
     "id": "moondrop-ultrasonic",
@@ -499,7 +499,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 7,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -525,7 +525,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 8,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -550,7 +550,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 28,
     "lowStockThreshold": 6,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -576,7 +576,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 19,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -602,7 +602,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 10,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -628,7 +628,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 14,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -654,7 +654,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 13,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -680,7 +680,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 11,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -706,7 +706,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 8,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -730,7 +730,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 15,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -754,7 +754,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 12,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -780,7 +780,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 9,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -804,7 +804,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 35,
     "lowStockThreshold": 8,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -830,7 +830,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 26,
     "lowStockThreshold": 5,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -856,7 +856,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 22,
     "lowStockThreshold": 5,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -880,7 +880,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 20,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -904,7 +904,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 25,
     "lowStockThreshold": 5,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -930,7 +930,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 18,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -956,7 +956,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 15,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -982,7 +982,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 16,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1008,7 +1008,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 14,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1034,7 +1034,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 10,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1058,7 +1058,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 30,
     "lowStockThreshold": 6,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1084,7 +1084,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 18,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1108,7 +1108,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 12,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1132,7 +1132,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 15,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1156,7 +1156,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 11,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1182,7 +1182,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 20,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1208,7 +1208,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 22,
     "lowStockThreshold": 5,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1234,7 +1234,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 9,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1260,7 +1260,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 8,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1284,7 +1284,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 14,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1310,8 +1310,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 18,
     "lowStockThreshold": 4,
-    "isActive": false,
-    "featured": false
+    "isActive": true,
+    "featured": true
   },
   {
     "id": "kiwi-ears-allegro-bal",
@@ -1336,8 +1336,8 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 10,
     "lowStockThreshold": 2,
-    "isActive": false,
-    "featured": false
+    "isActive": true,
+    "featured": true
   },
   {
     "id": "kiwi-ears-coda",
@@ -1362,7 +1362,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 25,
     "lowStockThreshold": 5,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1388,7 +1388,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 20,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1414,7 +1414,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 7,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1440,7 +1440,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 6,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1466,7 +1466,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 18,
     "lowStockThreshold": 4,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1492,7 +1492,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 8,
     "lowStockThreshold": 2,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1518,7 +1518,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 16,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   },
   {
@@ -1544,7 +1544,7 @@ export const products: Product[] = [
     "inStock": true,
     "stockQuantity": 14,
     "lowStockThreshold": 3,
-    "isActive": false,
+    "isActive": true,
     "featured": false
   }
 ];

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s | Noovyx",
   },
   description:
-    "Noovyx (noovyx.com) — Egypt's #1 store for authentic In-Ear Monitors (IEMs), KZ Castor, KZ ZS10 Pro 2, Hi-Fi Type-C DACs, upgrade cables, and wireless audio gear. Fast Cash on Delivery across Egypt.",
+    "Buy authentic KZ & Hi-Fi In-Ear Monitors (IEMs), Type-C DAC dongles, and upgrade cables in Egypt. Inspected in Cairo with fast Cash on Delivery.",
   applicationName: "Noovyx",
   keywords: [
     "Noovyx",
@@ -61,7 +61,8 @@ export const metadata: Metadata = {
     title: "Noovyx | Pro Audio & IEM Store Egypt",
     description:
       "Authentic In-Ear Monitors (IEMs), portable Hi-Fi DACs, upgrade cables, and wireless audio gear delivered across Egypt with Cash on Delivery.",
-    locale: "en_US",
+    locale: "en_EG",
+    alternateLocale: ["ar_EG", "en_US"],
     images: [
       {
         url: "/opengraph-image",

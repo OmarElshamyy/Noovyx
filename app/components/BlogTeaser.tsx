@@ -2,6 +2,7 @@
 
 import React from "react";
 import { DEFAULT_STOREFRONT_CONFIG, type StorefrontConfig } from "../../storefrontConfig";
+import { getGuideByIdOrIndex } from "../../lib/seoGuides";
 
 export function BlogTeaser({
   blogConfig = DEFAULT_STOREFRONT_CONFIG.blog,
@@ -16,7 +17,7 @@ export function BlogTeaser({
   if (!blogConfig.enabled || articles.length === 0) return null;
 
   return (
-    <section className="blog-teaser" aria-label="Audio guides">
+    <section className="blog-teaser" id="guides" aria-label="Audio guides">
       <div className="section-heading">
         <p className="category-label">{blogConfig.kicker}</p>
         <h2>{blogConfig.title}</h2>
@@ -24,25 +25,35 @@ export function BlogTeaser({
       </div>
 
       <div className="blog-grid">
-        {articles.map((a, idx) => (
-          <article key={a.id + idx} className="blog-card">
-            <div className="blog-card-img-wrap">
-              <img
-                src={a.image}
-                alt={a.title}
-                loading="lazy"
-                decoding="async"
-                className="blog-card-img"
-              />
-            </div>
-            <div className="blog-card-content">
-              <span className="blog-card-tag">{a.tag}</span>
-              <h3>{a.title}</h3>
-              <p>{a.excerpt}</p>
-              <span className="blog-card-read-more">{a.readMoreText || "Read Guide →"}</span>
-            </div>
-          </article>
-        ))}
+        {articles.map((a, idx) => {
+          const matchedGuide = getGuideByIdOrIndex(a.id, idx);
+          const href = `/guides/${encodeURIComponent(matchedGuide.slug)}`;
+          return (
+            <article key={a.id + idx} className="blog-card">
+              <a href={href} className="blog-card-img-wrap" style={{ display: "block" }}>
+                <img
+                  src={a.image}
+                  alt={a.title}
+                  width={600}
+                  height={360}
+                  loading="lazy"
+                  decoding="async"
+                  className="blog-card-img"
+                />
+              </a>
+              <div className="blog-card-content">
+                <span className="blog-card-tag">{a.tag}</span>
+                <h3>
+                  <a href={href}>{a.title}</a>
+                </h3>
+                <p>{a.excerpt}</p>
+                <a href={href} className="blog-card-read-more">
+                  {a.readMoreText || "Read Guide →"}
+                </a>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

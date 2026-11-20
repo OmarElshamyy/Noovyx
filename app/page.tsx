@@ -1,20 +1,27 @@
 import { Storefront } from "./storefront";
 import { products as defaultProducts } from "../products";
 import { getPublicProducts } from "../productService";
-import { DEFAULT_STOREFRONT_CONFIG, loadStorefrontConfig } from "../storefrontConfig";
+import {
+  DEFAULT_STOREFRONT_CONFIG,
+  loadStorefrontConfig,
+  type ReviewItemConfig,
+} from "../storefrontConfig";
 import type { Product } from "../types";
 
 export const dynamic = "force-dynamic";
 
-function buildStructuredData(liveProducts: Product[]) {
+function buildStructuredData(liveProducts: Product[], visibleReviews: ReviewItemConfig[]) {
   const baseUrl = "https://noovyx.com";
-  const activeProducts = liveProducts.filter((p) => p.isActive !== false);
+  const activeProducts =
+    liveProducts.filter((p) => p.isActive !== false).length > 1
+      ? liveProducts.filter((p) => p.isActive !== false)
+      : defaultProducts;
 
   const onlineStoreSchema = {
     "@type": ["OnlineStore", "Organization"],
     "@id": `${baseUrl}/#organization`,
     name: "Noovyx",
-    alternateName: ["Noovyx Egypt", "Noovyx Pro Audio", "noovyx.com"],
+    alternateName: ["Noovyx Egypt", "Noovyx Pro Audio", "noovyx.com", "نوفيكس"],
     url: baseUrl,
     logo: `${baseUrl}/icon`,
     image: `${baseUrl}/opengraph-image`,
@@ -26,21 +33,14 @@ function buildStructuredData(liveProducts: Product[]) {
     },
     currenciesAccepted: "EGP",
     paymentAccepted: "Cash on Delivery",
-    priceRange: "EGP 250 - EGP 4500",
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.9",
-      reviewCount: "120",
-      bestRating: "5",
-      worstRating: "1",
-    },
+    priceRange: "EGP 160 - EGP 3250",
   };
 
   const websiteSchema = {
     "@type": "WebSite",
     "@id": `${baseUrl}/#website`,
     url: baseUrl,
-    name: "Noovyx | Pro Audio & IEM Store Egypt",
+    name: "Noovyx | Pro Audio, KZ IEMs & Hi-Fi DAC Store Egypt",
     publisher: {
       "@id": `${baseUrl}/#organization`,
     },
@@ -53,18 +53,60 @@ function buildStructuredData(liveProducts: Product[]) {
     name: "Noovyx Pro Audio & IEM Catalog Egypt",
     numberOfItems: activeProducts.length,
     itemListElement: activeProducts.map((product, index) => {
+      const slug = product.slug || product.id;
+      const productUrl = `${baseUrl}/products/${encodeURIComponent(slug)}`;
       const rawImg = product.imageUrl || product.imageUrls?.[0] || "/products/kz-castor-bass.png";
       const absImg = rawImg.startsWith("http")
         ? rawImg
         : `${baseUrl}${rawImg.startsWith("/") ? "" : "/"}${rawImg}`;
       const brandName = product.name.split(" ")[0] || "KZ";
 
+      const matchingReviews = visibleReviews.filter(
+        (r) =>
+          r.product.toLowerCase().includes(product.name.toLowerCase()) ||
+          product.name.toLowerCase().includes(r.product.toLowerCase()),
+      );
+
+      const reviewProps =
+        matchingReviews.length > 0
+          ? {
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: String(
+                  (
+                    matchingReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) /
+                    matchingReviews.length
+                  ).toFixed(1),
+                ),
+                reviewCount: String(matchingReviews.length),
+                bestRating: "5",
+                worstRating: "1",
+              },
+              review: matchingReviews.map((r) => ({
+                "@type": "Review",
+                author: {
+                  "@type": "Person",
+                  name: r.author,
+                },
+                name: r.headline,
+                reviewBody: r.text,
+                reviewRating: {
+                  "@type": "Rating",
+                  ratingValue: String(r.rating),
+                  bestRating: "5",
+                  worstRating: "1",
+                },
+              })),
+            }
+          : {};
+
       return {
         "@type": "ListItem",
         position: index + 1,
         item: {
           "@type": "Product",
-          "@id": `${baseUrl}/#product-${product.slug || product.id}`,
+          "@id": `${productUrl}#product`,
+          url: productUrl,
           name: product.name,
           description: product.description,
           image: absImg,
@@ -74,9 +116,10 @@ function buildStructuredData(liveProducts: Product[]) {
             "@type": "Brand",
             name: brandName,
           },
+          ...reviewProps,
           offers: {
             "@type": "Offer",
-            url: `${baseUrl}/#product-${product.slug || product.id}`,
+            url: productUrl,
             priceCurrency: "EGP",
             price: String(product.price),
             availability: product.inStock
@@ -84,8 +127,7 @@ function buildStructuredData(liveProducts: Product[]) {
               : "https://schema.org/OutOfStock",
             itemCondition: "https://schema.org/NewCondition",
             seller: {
-              "@type": "Organization",
-              name: "Noovyx",
+              "@id": `${baseUrl}/#organization`,
             },
           },
         },
@@ -118,7 +160,7 @@ function buildStructuredData(liveProducts: Product[]) {
         name: "Are all KZ and Hi-Fi In-Ear Monitors on Noovyx 100% authentic?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Yes. Every IEM, upgrade cable, Bluetooth adapter, and Type-C DAC sold on Noovyx (noovyx.com) is sourced directly, factory-sealed, and quality-checked before dispatch.",
+          text: "Yes. Every IEM, upgrade cable, Bluetooth adapter, and Type-C DAC sold on Noovyx (noovyx.com) is sourced directly, factory-sealed, and quality-checked for driver channel balance before dispatch.",
         },
       },
       {
@@ -144,8 +186,15 @@ export default async function Home() {
     loadStorefrontConfig().catch(() => DEFAULT_STOREFRONT_CONFIG),
     getPublicProducts().catch(() => fallbackProducts),
   ]);
-  const activeProducts = initialProducts.filter((p) => p.isActive !== false);
-  const jsonLd = buildStructuredData(activeProducts);
+  const activeProducts =
+    initialProducts.filter((p) => p.isActive !== false).length > 1
+      ? initialProducts.filter((p) => p.isActive !== false)
+      : fallbackProducts;
+  const visibleReviews =
+    initialCmsConfig.reviews?.enabled !== false
+      ? initialCmsConfig.reviews?.items || DEFAULT_STOREFRONT_CONFIG.reviews.items
+      : [];
+  const jsonLd = buildStructuredData(activeProducts, visibleReviews);
 
   return (
     <>

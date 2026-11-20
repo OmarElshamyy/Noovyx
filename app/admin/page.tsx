@@ -1124,7 +1124,11 @@ export default function AdminPage() {
       setIsSaving(true);
       const parsedSpecs = specText.split("\n").map((s) => s.trim()).filter(Boolean);
       const finalImage = editingProduct.imageUrl || editingProduct.imageUrls[0] || "";
-      const finalUrls = editingProduct.imageUrls.length > 0 ? editingProduct.imageUrls : finalImage ? [finalImage] : [];
+      const baseUrls = editingProduct.imageUrls.length > 0 ? editingProduct.imageUrls : finalImage ? [finalImage] : [];
+      // Persist the selected main image at position 0 (Supabase derives the main image from gallery order)
+      const finalUrls = finalImage && baseUrls.includes(finalImage)
+        ? [finalImage, ...baseUrls.filter((u) => u !== finalImage)]
+        : baseUrls;
 
       const payload: Product = {
         ...editingProduct,

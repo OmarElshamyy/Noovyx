@@ -14,6 +14,7 @@ import { SearchBar } from "./components/SearchBar";
 import { useRecentlyViewed, RecentlyViewedSection } from "./components/RecentlyViewed";
 import { TrustSection } from "./components/TrustSection";
 import { BlogTeaser } from "./components/BlogTeaser";
+import { FaqSection } from "./components/FaqSection";
 import { Footer } from "./components/Footer";
 import { SiteHeader, type MenuTab } from "./components/SiteHeader";
 import { HeroSlideshow } from "./components/HeroSlideshow";
@@ -788,6 +789,9 @@ export function Storefront({
         {/* 10. Educational Audio Guides & Articles */}
         <BlogTeaser blogConfig={cmsConfig.blog} />
 
+        {/* 11. Visible FAQ Section matching FAQPage JSON-LD */}
+        <FaqSection />
+
         {/* 12. Recently Viewed Products History */}
         <RecentlyViewedSection
           products={recentProducts}
@@ -951,7 +955,20 @@ function ProductCard({
             {product.inStock ? "In stock" : "Out of stock"}
           </span>
         </div>
-        <h3 className="kz-card-title">{product.name}</h3>
+        <h3 className="kz-card-title">
+          <a
+            href={`/products/${encodeURIComponent(product.slug || product.id)}`}
+            onClick={(e) => {
+              if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                onView(product);
+              }
+            }}
+          >
+            {product.name}
+          </a>
+        </h3>
 
         {product.specs && product.specs.length > 0 ? (
           <p className="kz-card-spec-line">{product.specs.slice(0, 2).join(" · ")}</p>
@@ -1058,11 +1075,16 @@ function getStockAlert(product: Product) {
 }
 
 function getProductImages(product: Product) {
-  return product.imageUrls.length > 0
-    ? product.imageUrls
-    : product.imageUrl
-      ? [product.imageUrl]
-      : [];
+  const urls = (product.imageUrls || []).filter(Boolean);
+  const main = (product.imageUrl || "").trim();
+  if (urls.length === 0) {
+    return main ? [main] : [];
+  }
+  // Always show the admin-selected main image first
+  if (main && urls.includes(main) && urls[0] !== main) {
+    return [main, ...urls.filter((u) => u !== main)];
+  }
+  return urls;
 }
 
 function ProductCardGallery({ product }: { product: Product }) {
@@ -1172,7 +1194,7 @@ function ProductGallery({ product }: { product: Product }) {
   }
 
   return (
-    <div className="product-gallery">
+    <div className={images.length > 1 ? "product-gallery has-thumbs" : "product-gallery single-image"}>
       {/* Main visual with arrows (desktop), swipe + dots (mobile) and counter */}
       <div
         className="pdm-stage"
